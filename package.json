@@ -1,0 +1,11 @@
+{
+    "name": "meta-ads-dashboard",
+    "private": true,
+    "version": "0.1.0",
+    "packageManager": "pnpm@11.20.0",
+    "scripts": {
+      "dev": "pnpm --filter dashboard dev",
+      "build": "pnpm --recursive build",
+      "lint": "pnpm --recursive lint"
+    }
+  }
