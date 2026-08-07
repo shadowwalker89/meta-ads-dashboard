@@ -9,8 +9,16 @@ import { scrapeCampaignTable } from "./meta-ads-scraper.js";
 /**
  * Sprint 5 scope: real browser lifecycle with a persistent, reused
  * session. Still NO automated login — if the session isn't already
- * logged in (via the headful bootstrap script), this fails gracefully
- * and logs why, instead of guessing selectors or attempting a login.
+ * logged in (via the headful bootstrap script), this fails loudly
+ * (throws) instead of guessing selectors or attempting a login.
+ *
+ * IMPORTANT: this throws rather than returning an empty array when
+ * the session isn't logged in. Returning [] would look identical to
+ * "zero campaigns found on an otherwise fine account" — CollectorJob
+ * would get marked "success" even though nothing actually worked.
+ * Throwing lets CollectorOrchestrator's existing try/catch mark the
+ * job "failed" with a real error message, which is what actually
+ * happened.
  */
 export class PlaywrightCollector implements CollectorProvider {
   constructor(private readonly sessionManager: BrowserSessionManager) {}
@@ -32,10 +40,9 @@ export class PlaywrightCollector implements CollectorProvider {
 
       const loggedIn = await isSessionLoggedIn(page);
       if (!loggedIn) {
-        console.error(
-          "[Collector] job failed: session is not logged in. Run `pnpm run bootstrap-session` once to log in manually, then retry."
+        throw new Error(
+          "Session is not logged in. Run `pnpm run bootstrap-session` once to log in manually, then retry."
         );
-        return [];
       }
 
       const rows = await scrapeCampaignTable(page);
