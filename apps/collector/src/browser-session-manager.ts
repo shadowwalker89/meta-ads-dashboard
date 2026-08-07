@@ -1,39 +1,53 @@
-import { chromium, type Browser, type BrowserContext } from "playwright";
+import { chromium, type BrowserContext } from "playwright";
+import { existsSync, mkdirSync } from "node:fs";
+import { resolve } from "node:path";
+
+const DEFAULT_USER_DATA_DIR = "./.collector-session";
 
 /**
- * Owns exactly one Chromium instance for the whole collector run.
- * Nothing outside this class touches `chromium` directly — that's
- * what keeps Playwright as an implementation detail instead of
- * something PlaywrightCollector (or anything else) has to manage.
+ * Owns exactly one Playwright persistent context for the whole
+ * Collector run. A persistent context IS the browser plus a saved
+ * profile directory (cookies, local storage, login session) in one
+ * object — that's what lets an admin log into Meta once (via the
+ * headful bootstrap script) and have every later Collector run reuse
+ * that same session automatically. No username/password ever touches
+ * this class.
  */
 export class BrowserSessionManager {
-  private browser: Browser | null = null;
+  private context: BrowserContext | null = null;
+  private readonly userDataDir: string;
 
-  async getBrowser(): Promise<Browser> {
-    if (!this.browser) {
-      console.log("[BrowserSessionManager] launching Chromium...");
-      this.browser = await chromium.launch({ headless: true });
-      console.log("[BrowserSessionManager] Chromium launched");
+  constructor(
+    userDataDir: string = process.env.COLLECTOR_USER_DATA_DIR ?? DEFAULT_USER_DATA_DIR
+  ) {
+    this.userDataDir = resolve(userDataDir);
+  }
+
+  get userDataDirPath(): string {
+    return this.userDataDir;
+  }
+
+  async getContext(options: { headless?: boolean } = {}): Promise<BrowserContext> {
+    if (!this.context) {
+      if (!existsSync(this.userDataDir)) {
+        mkdirSync(this.userDataDir, { recursive: true });
+      }
+      console.log(
+        `[BrowserSessionManager] launching persistent context at: ${this.userDataDir}`
+      );
+      this.context = await chromium.launchPersistentContext(this.userDataDir, {
+        headless: options.headless ?? true,
+      });
+      console.log("[BrowserSessionManager] persistent context ready");
     }
-    return this.browser;
-  }
-
-  async createContext(): Promise<BrowserContext> {
-    const browser = await this.getBrowser();
-    console.log("[BrowserSessionManager] creating new browser context");
-    return browser.newContext();
-  }
-
-  async closeContext(context: BrowserContext): Promise<void> {
-    console.log("[BrowserSessionManager] closing browser context");
-    await context.close();
+    return this.context;
   }
 
   async shutdown(): Promise<void> {
-    if (this.browser) {
-      console.log("[BrowserSessionManager] closing Chromium");
-      await this.browser.close();
-      this.browser = null;
+    if (this.context) {
+      console.log("[BrowserSessionManager] closing persistent context");
+      await this.context.close();
+      this.context = null;
     }
   }
 }

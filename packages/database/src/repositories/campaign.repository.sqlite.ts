@@ -43,6 +43,18 @@ export class SqliteCampaignRepository implements CampaignRepository {
     return rows.map(toDomain);
   }
 
+  async findByAdAccountAndLabel(
+    adAccountId: string,
+    scrapedLabel: string
+  ): Promise<Campaign | null> {
+    const row = this.db
+      .prepare(
+        "SELECT * FROM campaigns WHERE ad_account_id = ? AND scraped_label = ?"
+      )
+      .get(adAccountId, scrapedLabel) as CampaignRow | undefined;
+    return row ? toDomain(row) : null;
+  }
+
   async create(campaign: Omit<Campaign, "id" | "createdAt">): Promise<Campaign> {
     const id = randomUUID();
     const createdAt = new Date().toISOString();

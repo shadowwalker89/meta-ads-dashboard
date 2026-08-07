@@ -1,4 +1,4 @@
-// Placeholder constant only. Will be replaced with the real Meta Ads
-// Manager URL when login/scraping is implemented in a later sprint.
-// Intentionally NOT a Meta URL yet, per Sprint 4 scope.
-export const PLACEHOLDER_URL = "https://example.com";
+// Superseded by config.ts (Sprint 5) — target URLs are now configurable
+// via COLLECTOR_TARGET_BASE_URL instead of a hardcoded constant.
+// This file is no longer imported anywhere; safe to delete.
+export {};

@@ -1,42 +1,38 @@
-import type { InsightSnapshot } from "@repo/shared";
+import { parseLocalizedNumber } from "./number-normalizer.js";
+import type { RawCampaignMetrics } from "./raw-campaign-metrics.js";
 
-/**
- * Loose input shape — deliberately permissive, since real input will
- * later come from either scraped DOM text (Playwright) or a typed
- * Meta API response, and both need to funnel through the same shape.
- */
-export interface RawMetricsInput {
-  campaignId: string;
-  capturedAt?: Date;
-  impressions?: number;
-  clicks?: number;
-  spend?: number;
-  ctr?: number;
-  cpc?: number;
-  cpm?: number;
-  reach?: number;
-  raw?: Record<string, unknown>;
+export interface ParsedCampaignMetrics {
+  impressions: number;
+  clicks: number;
+  spend: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  reach: number;
+  rawPayload: Record<string, unknown>;
 }
 
 /**
- * Sprint 4 scope: normalize mocked/raw input into a typed
- * InsightSnapshot shape. No real parsing logic (scraped text
- * cleanup, number formatting, locale handling, etc.) yet — that
- * arrives once PlaywrightCollector actually reads Meta's UI.
+ * Converts scraped/raw string metrics into the typed numbers
+ * InsightSnapshot needs. The Domain Model defines these fields as
+ * plain `number` (not nullable) — so an empty/unavailable raw value
+ * ("-", "N/A", "") normalizes to 0 here, deliberately, rather than
+ * changing the Domain Model to allow null. `parseLocalizedNumber`
+ * itself still returns `null` for those inputs (see its own unit
+ * tests) — this is the one place that decides what "no value" means
+ * for a snapshot.
  */
 export class MetricsParser {
-  parse(input: RawMetricsInput): Omit<InsightSnapshot, "id"> {
+  parse(raw: RawCampaignMetrics): ParsedCampaignMetrics {
     return {
-      campaignId: input.campaignId,
-      capturedAt: input.capturedAt ?? new Date(),
-      impressions: input.impressions ?? 0,
-      clicks: input.clicks ?? 0,
-      spend: input.spend ?? 0,
-      ctr: input.ctr ?? 0,
-      cpc: input.cpc ?? 0,
-      cpm: input.cpm ?? 0,
-      reach: input.reach ?? 0,
-      rawPayload: input.raw ?? null,
+      impressions: parseLocalizedNumber(raw.impressions) ?? 0,
+      clicks: parseLocalizedNumber(raw.clicks) ?? 0,
+      spend: parseLocalizedNumber(raw.spend) ?? 0,
+      ctr: parseLocalizedNumber(raw.ctr) ?? 0,
+      cpc: parseLocalizedNumber(raw.cpc) ?? 0,
+      cpm: parseLocalizedNumber(raw.cpm) ?? 0,
+      reach: parseLocalizedNumber(raw.reach) ?? 0,
+      rawPayload: { ...raw },
     };
   }
 }
