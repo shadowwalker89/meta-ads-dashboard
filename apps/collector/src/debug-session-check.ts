@@ -20,17 +20,23 @@ import { getCollectorConfig } from "./config.js";
  * inspection tool, not production code.
  */
 async function main() {
+  const config = getCollectorConfig();
   const sessionManager = new BrowserSessionManager();
   const context = await sessionManager.getContext();
   const page = await context.newPage();
 
-  const targetUrl = getCollectorConfig().baseUrl;
-  console.log(`[Debug] navigating to: ${targetUrl}`);
+  console.log(`[Debug] navigating to: ${config.baseUrl}`);
+  console.log(`[Debug] navigation timeout: ${config.navigationTimeoutMs}ms`);
 
-  await page.goto(targetUrl, { waitUntil: "load", timeout: 30000 });
-  // Give client-side rendered content a moment to finish, without
-  // waiting for network-idle which can hang on polling/websockets.
-  await page.waitForTimeout(3000);
+  // domcontentloaded rather than "load": Meta's Comet UI keeps
+  // background requests/websockets going indefinitely, so "load" may
+  // never fire even though the page is fully usable.
+  await page.goto(config.baseUrl, {
+    waitUntil: "domcontentloaded",
+    timeout: config.navigationTimeoutMs,
+  });
+  // Give client-side rendering a bit more time to settle after DOM-ready.
+  await page.waitForTimeout(5000);
 
   const screenshotPath = resolve("./.collector-session-debug.png");
   await page.screenshot({ path: screenshotPath, fullPage: true });

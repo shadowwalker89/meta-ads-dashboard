@@ -29,16 +29,23 @@ export class PlaywrightCollector implements CollectorProvider {
       `[Collector] using persistent session: ${this.sessionManager.userDataDirPath}`
     );
 
+    const config = getCollectorConfig();
     const context = await this.sessionManager.getContext();
-    const targetUrl = getCollectorConfig().adAccountReportUrl(adAccountId);
+    const targetUrl = config.adAccountReportUrl(adAccountId);
 
     let page: Page | null = null;
     try {
       page = await context.newPage();
       console.log(`[Collector] opening Ad Account: ${adAccountId}`);
-      await page.goto(targetUrl);
+      // domcontentloaded rather than the default "load": Meta's Comet
+      // UI keeps background requests/websockets going indefinitely,
+      // so "load" may never fire even though the page is usable.
+      await page.goto(targetUrl, {
+        waitUntil: "domcontentloaded",
+        timeout: config.navigationTimeoutMs,
+      });
 
-      const loggedIn = await isSessionLoggedIn(page);
+      const loggedIn = await isSessionLoggedIn(page, config.navigationTimeoutMs);
       if (!loggedIn) {
         throw new Error(
           "Session is not logged in. Run `pnpm run bootstrap-session` once to log in manually, then retry."
