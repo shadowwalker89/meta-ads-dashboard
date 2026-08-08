@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "bootstrap-session": "tsx src/bootstrap-session.ts",
     "debug-session": "tsx src/debug-session-check.ts",
+    "debug-export": "tsx src/debug-export.ts",
     "test": "tsx --test test/metrics-parser.test.ts"
   },
   "dependencies": {
