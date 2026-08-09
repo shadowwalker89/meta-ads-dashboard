@@ -66,6 +66,15 @@ export interface InsightSnapshot {
   capturedAt: Date;
   impressions: number;
   clicks: number;
+  /**
+   * Added alongside `clicks`: Meta reports "Clicks (all)" (any click
+   * on the ad) and "Link clicks" (only clicks that navigate somewhere)
+   * as two distinct, both-meaningful metrics -- not one superseding
+   * the other. `clicks` maps to "Clicks (all)"; this maps to "Link
+   * clicks". Added 2026-08-08 per explicit product decision to show
+   * both to clients.
+   */
+  linkClicks: number;
   spend: number;
   ctr: number;
   cpc: number;

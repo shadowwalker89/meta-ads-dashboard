@@ -65,6 +65,7 @@ test("MetricsParser: converts a full RawCampaignMetrics row", () => {
     scrapedLabel: "Summer Sale",
     impressions: "۱۲٬۳۴۵",
     clicks: "1,234",
+    linkClicks: "987",
     spend: "$1,234.56",
     ctr: "12.3%",
     cpc: "$0.45",
@@ -74,6 +75,7 @@ test("MetricsParser: converts a full RawCampaignMetrics row", () => {
 
   assert.equal(result.impressions, 12345);
   assert.equal(result.clicks, 1234);
+  assert.equal(result.linkClicks, 987);
   assert.equal(result.spend, 1234.56);
   assert.equal(result.ctr, 12.3);
   assert.equal(result.cpc, 0.45);

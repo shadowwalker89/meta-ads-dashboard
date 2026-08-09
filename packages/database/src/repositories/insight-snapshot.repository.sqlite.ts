@@ -13,6 +13,7 @@ interface InsightSnapshotRow {
   captured_at: string;
   impressions: number;
   clicks: number;
+  link_clicks: number;
   spend: number;
   ctr: number;
   cpc: number;
@@ -28,6 +29,7 @@ function toDomain(row: InsightSnapshotRow): InsightSnapshot {
     capturedAt: new Date(row.captured_at),
     impressions: row.impressions,
     clicks: row.clicks,
+    linkClicks: row.link_clicks,
     spend: row.spend,
     ctr: row.ctr,
     cpc: row.cpc,
@@ -45,8 +47,8 @@ export class SqliteInsightSnapshotRepository implements InsightSnapshotRepositor
     this.db
       .prepare(
         `INSERT INTO insight_snapshots
-           (id, campaign_id, captured_at, impressions, clicks, spend, ctr, cpc, cpm, reach, raw_payload)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           (id, campaign_id, captured_at, impressions, clicks, link_clicks, spend, ctr, cpc, cpm, reach, raw_payload)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         id,
@@ -54,6 +56,7 @@ export class SqliteInsightSnapshotRepository implements InsightSnapshotRepositor
         snapshot.capturedAt.toISOString(),
         snapshot.impressions,
         snapshot.clicks,
+        snapshot.linkClicks,
         snapshot.spend,
         snapshot.ctr,
         snapshot.cpc,

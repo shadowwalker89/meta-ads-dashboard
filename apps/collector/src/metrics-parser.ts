@@ -4,6 +4,7 @@ import type { RawCampaignMetrics } from "./raw-campaign-metrics.js";
 export interface ParsedCampaignMetrics {
   impressions: number;
   clicks: number;
+  linkClicks: number;
   spend: number;
   ctr: number;
   cpc: number;
@@ -27,6 +28,7 @@ export class MetricsParser {
     return {
       impressions: parseLocalizedNumber(raw.impressions) ?? 0,
       clicks: parseLocalizedNumber(raw.clicks) ?? 0,
+      linkClicks: parseLocalizedNumber(raw.linkClicks) ?? 0,
       spend: parseLocalizedNumber(raw.spend) ?? 0,
       ctr: parseLocalizedNumber(raw.ctr) ?? 0,
       cpc: parseLocalizedNumber(raw.cpc) ?? 0,
