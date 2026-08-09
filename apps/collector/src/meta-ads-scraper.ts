@@ -111,6 +111,14 @@ export async function scrapeCampaignTable(
   }
 
   const csvContent = readFileSync(filePath, "utf-8");
+
+  // TEMPORARY diagnostic (Sprint 5 troubleshooting) -- prints exactly
+  // what Meta's export actually contained, so a "0 rows found" result
+  // can be understood directly from these logs instead of guessing.
+  // Safe to remove once row counts look right consistently.
+  console.log("[Collector][debug] raw export CSV:");
+  console.log(csvContent);
+
   const rows = parseCsv(csvContent);
 
   if (rows.length === 0) {
