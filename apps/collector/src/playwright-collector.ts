@@ -1,4 +1,5 @@
 import type { Page } from "playwright";
+import type { AdAccount } from "@repo/shared";
 import type { CollectorProvider } from "./collector-provider.js";
 import type { BrowserSessionManager } from "./browser-session-manager.js";
 import type { RawCampaignMetrics } from "./raw-campaign-metrics.js";
@@ -22,20 +23,26 @@ import { scrapeCampaignTable } from "./meta-ads-scraper.js";
 export class PlaywrightCollector implements CollectorProvider {
   constructor(private readonly sessionManager: BrowserSessionManager) {}
 
-  async collect(adAccountId: string): Promise<RawCampaignMetrics[]> {
+  async collect(adAccount: AdAccount): Promise<RawCampaignMetrics[]> {
     console.log("[Collector] starting...");
     console.log(
       `[Collector] using persistent session: ${this.sessionManager.userDataDirPath}`
     );
 
+    if (!adAccount.metaAdAccountId) {
+      throw new Error(
+        `AdAccount ${adAccount.id} has no metaAdAccountId set — cannot build a Meta Ads Manager URL. Set it via AdAccountRepository.updateSource() first.`
+      );
+    }
+
     const config = getCollectorConfig();
     const context = await this.sessionManager.getContext();
-    const targetUrl = config.adAccountReportUrl(adAccountId);
+    const targetUrl = config.adAccountReportUrl(adAccount.metaAdAccountId);
 
     let page: Page | null = null;
     try {
       page = await context.newPage();
-      console.log(`[Collector] opening Ad Account: ${adAccountId}`);
+      console.log(`[Collector] opening Ad Account: ${adAccount.id} → ${targetUrl}`);
       // domcontentloaded rather than the default "load": Meta's Comet
       // UI keeps background requests/websockets going indefinitely,
       // so "load" may never fire even though the page is usable.
@@ -58,7 +65,7 @@ export class PlaywrightCollector implements CollectorProvider {
       if (page) {
         await page.close();
       }
-      console.log(`[Collector] finished for adAccountId=${adAccountId}`);
+      console.log(`[Collector] finished for adAccountId=${adAccount.id}`);
     }
   }
 }

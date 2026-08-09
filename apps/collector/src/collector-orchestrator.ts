@@ -1,4 +1,5 @@
 import type {
+  AdAccount,
   AdAccountRepository,
   Campaign,
   CampaignRepository,
@@ -23,9 +24,7 @@ export interface CollectorOrchestratorDeps {
  * Coordinates one full collection pass. Contains NO scraping logic
  * and NO SQL — it only calls CollectorProvider.collect(), and for
  * each raw row: finds-or-creates the matching Campaign, converts the
- * raw metrics through MetricsParser, and saves the result. All of it
- * built from existing Repository interfaces (plus the one new
- * CampaignRepository method authorized for this sprint).
+ * raw metrics through MetricsParser, and saves the result.
  */
 export class CollectorOrchestrator {
   constructor(private readonly deps: CollectorOrchestratorDeps) {}
@@ -40,7 +39,7 @@ export class CollectorOrchestrator {
         const adAccounts = await this.deps.adAccountRepository.findByClient(client.id);
 
         for (const adAccount of adAccounts) {
-          await this.collectForAdAccount(adAccount.id);
+          await this.collectForAdAccount(adAccount);
         }
       }
 
@@ -48,15 +47,15 @@ export class CollectorOrchestrator {
     } while (cursor);
   }
 
-  async collectForAdAccount(adAccountId: string): Promise<void> {
-    const job = await this.deps.collectorJobRepository.start(adAccountId, "playwright");
-    console.log(`[Collector] job ${job.id} started for adAccountId=${adAccountId}`);
+  async collectForAdAccount(adAccount: AdAccount): Promise<void> {
+    const job = await this.deps.collectorJobRepository.start(adAccount.id, "playwright");
+    console.log(`[Collector] job ${job.id} started for adAccountId=${adAccount.id}`);
 
     try {
-      const rawRows = await this.deps.collectorProvider.collect(adAccountId);
+      const rawRows = await this.deps.collectorProvider.collect(adAccount);
 
       for (const raw of rawRows) {
-        const campaign = await this.discoverCampaign(adAccountId, raw.scrapedLabel);
+        const campaign = await this.discoverCampaign(adAccount.id, raw.scrapedLabel);
 
         const parsed = this.deps.metricsParser.parse(raw);
         await this.deps.insightSnapshotRepository.append({
@@ -78,7 +77,7 @@ export class CollectorOrchestrator {
 
   /**
    * scrapedLabel is treated as the campaign's current identity (real
-   * Meta campaign IDs aren't available from scraping). Existing
+   * Meta campaign IDs aren't available from the CSV export). Existing
    * Campaigns are matched and reused; a new one is only created when
    * no match exists — never with a made-up id, so InsightSnapshot's
    * foreign key always points at a real row.
