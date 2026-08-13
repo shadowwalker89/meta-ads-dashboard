@@ -8,6 +8,7 @@ export interface User {
   role: UserRole;
   fullName: string;
   email: string;
+  clientId: string | null;
   createdAt: Date;
 }
 

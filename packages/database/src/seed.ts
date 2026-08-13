@@ -31,6 +31,7 @@ async function seed() {
     role: "super_admin",
     fullName: "Super Admin",
     email: "superadmin@example.com",
+    clientId: null,
   });
 
   console.log("Seeding 3 admins...");
@@ -39,20 +40,31 @@ async function seed() {
       role: "admin",
       fullName: `Admin ${i}`,
       email: `admin${i}@example.com`,
+      clientId: null,
     });
   }
 
   console.log("Seeding 10 clients...");
+  const createdClients = [];
   for (let i = 1; i <= 10; i++) {
     const pkg = createdPackages[(i - 1) % createdPackages.length];
-    await clients.create({
+    const client = await clients.create({
       name: `Client ${i}`,
       businessType: "General",
       contactEmail: `client${i}@example.com`,
       packageId: pkg.id,
       isActive: true,
     });
+    createdClients.push(client);
   }
+
+  console.log("Seeding 1 client-role user...");
+  await users.create({
+    role: "client",
+    fullName: "Client 1 User",
+    email: "client1user@example.com",
+    clientId: createdClients[0].id,
+  });
 
   console.log("Seed complete.");
   db.close();

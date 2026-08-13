@@ -61,6 +61,7 @@ test("repositories can write and read back seeded-style data", async () => {
     role: "admin",
     fullName: "Test Admin",
     email: "test-admin@example.com",
+    clientId: null,
   });
 
   const client = await clients.create({
@@ -71,15 +72,25 @@ test("repositories can write and read back seeded-style data", async () => {
     isActive: true,
   });
 
+  const clientUser = await users.create({
+    role: "client",
+    fullName: "Test Client User",
+    email: "test-client-user@example.com",
+    clientId: client.id,
+  });
+
   const foundPackage = await packages.findById(pkg.id);
   const foundAdmin = await users.findById(admin.id);
   const foundClient = await clients.findById(client.id);
+  const foundClientUser = await users.findById(clientUser.id);
   const allPackages = await packages.listAll();
 
   assert.equal(foundPackage?.name, "Gold");
   assert.deepEqual(foundPackage?.metricThresholds, { minViews: 1000 });
   assert.equal(foundAdmin?.role, "admin");
+  assert.equal(foundAdmin?.clientId, null);
   assert.equal(foundClient?.packageId, pkg.id);
+  assert.equal(foundClientUser?.clientId, client.id);
   assert.equal(allPackages.length, 1);
 
   db.close();

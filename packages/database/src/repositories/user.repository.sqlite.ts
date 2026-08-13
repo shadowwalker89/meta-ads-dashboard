@@ -7,6 +7,7 @@ interface UserRow {
   role: string;
   full_name: string;
   email: string;
+  client_id: string | null;
   created_at: string;
 }
 
@@ -16,6 +17,7 @@ function toDomain(row: UserRow): User {
     role: row.role as User["role"],
     fullName: row.full_name,
     email: row.email,
+    clientId: row.client_id,
     createdAt: new Date(row.created_at),
   };
 }
@@ -42,9 +44,9 @@ export class SqliteUserRepository implements UserRepository {
     const createdAt = new Date().toISOString();
     this.db
       .prepare(
-        "INSERT INTO users (id, role, full_name, email, created_at) VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO users (id, role, full_name, email, client_id, created_at) VALUES (?, ?, ?, ?, ?, ?)"
       )
-      .run(id, user.role, user.fullName, user.email, createdAt);
+      .run(id, user.role, user.fullName, user.email, user.clientId, createdAt);
     return { id, ...user, createdAt: new Date(createdAt) };
   }
 
@@ -58,8 +60,10 @@ export class SqliteUserRepository implements UserRepository {
     }
     const merged: User = { ...existing, ...changes };
     this.db
-      .prepare("UPDATE users SET role = ?, full_name = ?, email = ? WHERE id = ?")
-      .run(merged.role, merged.fullName, merged.email, id);
+      .prepare(
+        "UPDATE users SET role = ?, full_name = ?, email = ?, client_id = ? WHERE id = ?"
+      )
+      .run(merged.role, merged.fullName, merged.email, merged.clientId, id);
     return merged;
   }
 }
