@@ -1,6 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { loginAsMockRole } from "./actions";
+import { loginAsMockUser } from "./actions";
 
+// Seeded user emails are the stable identifiers (email is UNIQUE in
+// the users table). Seed row ids are randomUUID()s generated at seed
+// time, so the mock login selects users by their seeded email instead
+// of inventing ids the dashboard cannot know.
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
@@ -14,7 +18,7 @@ export default function LoginPage() {
           <form
             action={async () => {
               "use server";
-              await loginAsMockRole("super_admin");
+              await loginAsMockUser("superadmin@example.com", "super_admin");
             }}
           >
             <Button type="submit" className="w-full">
@@ -24,7 +28,7 @@ export default function LoginPage() {
           <form
             action={async () => {
               "use server";
-              await loginAsMockRole("admin");
+              await loginAsMockUser("admin1@example.com", "admin");
             }}
           >
             <Button type="submit" variant="secondary" className="w-full">
@@ -34,7 +38,7 @@ export default function LoginPage() {
           <form
             action={async () => {
               "use server";
-              await loginAsMockRole("client");
+              await loginAsMockUser("client1user@example.com", "client");
             }}
           >
             <Button type="submit" variant="outline" className="w-full">

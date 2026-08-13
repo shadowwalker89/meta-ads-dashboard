@@ -1,13 +1,19 @@
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Wallet, Eye, MousePointerClick, Link2 } from "lucide-react";
+import { getCurrentUser } from "@/lib/get-current-user";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight">داشبورد</h1>
         <p className="text-sm text-muted-foreground">
           نمای کلی عملکرد کمپین‌های تبلیغاتی
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {user ? `${user.fullName} (${user.email})` : "کاربر وارد نشده"}
         </p>
       </div>
 
