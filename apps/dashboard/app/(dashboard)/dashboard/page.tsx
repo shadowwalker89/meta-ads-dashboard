@@ -1,9 +1,18 @@
-import { StatCard } from "@/components/dashboard/stat-card";
-import { Wallet, Eye, MousePointerClick, Link2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/get-current-user";
+import { getClientKpis, type ClientKpis } from "@/lib/client-kpis";
+import { getClientKpiConfiguration } from "@/lib/kpi-config";
+import { KpiCards } from "@/components/dashboard/kpi-cards";
+import { CampaignPerformanceTable } from "@/components/dashboard/campaign-performance-table";
+import type { DashboardKpiKey } from "@repo/shared";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
+  const clientId = user?.clientId ?? null;
+
+  const kpis: ClientKpis = clientId
+    ? await getClientKpis(clientId)
+    : { values: {} as Record<DashboardKpiKey, number>, campaignCount: 0, campaigns: [] };
+  const visibleKpis = clientId ? await getClientKpiConfiguration(clientId) : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -17,47 +26,24 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="هزینه تبلیغات"
-          value="۱۲٬۴۵۰٬۰۰۰ تومان"
-          description="کل هزینه‌ی دوره"
-          trend={{ value: 12.5, direction: "up", label: "نسبت به دوره قبل" }}
-          icon={<Wallet />}
-        />
-        <StatCard
-          title="نمایش‌ها"
-          value="۲۳۴٬۵۶۷"
-          description="تعداد کل نمایش‌ها"
-          trend={{ value: 8.2, direction: "up" }}
-          icon={<Eye />}
-        />
-        <StatCard
-          title="کلیک‌ها"
-          value="۴٬۸۹۰"
-          description="تعداد کل کلیک‌ها"
-          trend={{ value: 3.4, direction: "up" }}
-          icon={<MousePointerClick />}
-        />
-        <StatCard
-          title="کلیک روی لینک"
-          value="۳٬۲۱۰"
-          description="کلیک‌های روی لینک مقصد"
-          trend={{ value: 1.8, direction: "down", label: "کاهش جزئی" }}
-          icon={<Link2 />}
-        />
-      </div>
+      {visibleKpis.length > 0 ? (
+        <KpiCards visibleKpis={visibleKpis} values={kpis.values} />
+      ) : (
+        <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
+          {clientId
+            ? "هیچ شاخصی برای این مشتری فعال نیست."
+            : "برای مشاهده‌ی شاخص‌ها، وارد حساب مشتری شوید."}
+        </div>
+      )}
 
       <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">روند عملکرد</h2>
+          <h2 className="text-base font-semibold">عملکرد کمپین‌ها</h2>
           <p className="text-xs text-muted-foreground">
-            نمودار این بخش در مراحل بعدی اضافه می‌شود.
+            جزئیات عملکرد هر کمپین بر اساس آخرین داده‌ی جمع‌آوری‌شده
           </p>
         </div>
-        <div className="flex h-64 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          نمودار در مراحل بعدی
-        </div>
+        <CampaignPerformanceTable campaigns={kpis.campaigns} visibleKpis={visibleKpis} />
       </section>
     </div>
   );

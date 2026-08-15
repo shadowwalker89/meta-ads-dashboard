@@ -1,6 +1,8 @@
 // Pure domain types — no storage-specific concerns, no ORM decorators,
 // no SQL. Mirrors docs/domain-model.md.
 
+import type { DashboardKpiKey } from "./kpi-catalog";
+
 export type UserRole = "super_admin" | "admin" | "client";
 
 export interface User {
@@ -68,12 +70,13 @@ export interface InsightSnapshot {
   impressions: number;
   clicks: number;
   /**
-   * Added alongside `clicks`: Meta reports "Clicks (all)" (any click
-   * on the ad) and "Link clicks" (only clicks that navigate somewhere)
-   * as two distinct, both-meaningful metrics -- not one superseding
-   * the other. `clicks` maps to "Clicks (all)"; this maps to "Link
-   * clicks". Added 2026-08-08 per explicit product decision to show
-   * both to clients.
+   * Meta reports "Clicks (all)" (any click on the ad) and "Link clicks"
+   * (only clicks that navigate somewhere) as two distinct, both-meaningful
+   * metrics -- not one superseding the other. `clicks` maps to "Link
+   * clicks"; `linkClicks` also maps to "Link clicks"; `clicksAll` maps to
+   * "Clicks (all)". `clicks` and `linkClicks` share the same Meta column
+   * by design: the dashboard KPI named "کلیک" represents link clicks, and
+   * `clicksAll` is exposed separately. Confirmed 2026-08-15.
    */
   linkClicks: number;
   spend: number;
@@ -81,6 +84,26 @@ export interface InsightSnapshot {
   cpc: number;
   cpm: number;
   reach: number;
+  /**
+   * Extended Meta Ads metric set (added 2026-08-14). Stored in their own
+   * columns with a DEFAULT of 0, so snapshots created before these fields
+   * existed read back as 0 — never undefined. `clicksAll` maps to Meta's
+   * "Clicks (all)" column.
+   */
+  frequency: number;
+  clicksAll: number;
+  uniqueClicks: number;
+  uniqueCtr: number;
+  landingPageViews: number;
+  outboundClicks: number;
+  outboundCtr: number;
+  leads: number;
+  messagesStarted: number;
+  messagesContacts: number;
+  results: number;
+  costPerResult: number;
+  postReactions: number;
+  postComments: number;
   rawPayload: Record<string, unknown> | null;
 }
 
@@ -88,7 +111,7 @@ export interface DashboardPreference {
   id: string;
   userId: string | null;
   clientId: string | null;
-  visibleMetrics: string[];
+  visibleMetrics: DashboardKpiKey[];
   theme: "light" | "dark" | "system";
   updatedAt: Date;
 }

@@ -1,0 +1,78 @@
+import "./setup";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { renderToStaticMarkup } from "react-dom/server";
+import type { DashboardKpiKey } from "@repo/shared";
+import { DEFAULT_VISIBLE_KPIS } from "@repo/shared";
+import { KpiCards } from "@/components/dashboard/kpi-cards";
+import { CampaignPerformanceTable } from "@/components/dashboard/campaign-performance-table";
+
+function emptyValues(keys: DashboardKpiKey[]): Record<DashboardKpiKey, number> {
+  const values = {} as Record<DashboardKpiKey, number>;
+  for (const key of keys) values[key] = 0;
+  return values;
+}
+
+test("dashboard renders only the configured KPI cards", () => {
+  const visible = ["spend", "ctr"] as DashboardKpiKey[];
+  const html = renderToStaticMarkup(
+    <KpiCards visibleKpis={visible} values={emptyValues(visible)} />
+  );
+
+  // Configured KPI labels are rendered...
+  assert.ok(html.includes("هزینه تبلیغات"));
+  assert.ok(html.includes("نرخ کلیک (CTR)"));
+  // ...and KPIs that were NOT configured are absent.
+  assert.ok(!html.includes("نمایش‌ها"));
+  assert.ok(!html.includes("کلیک روی لینک"));
+});
+
+test("dashboard renders the default KPI set by default", () => {
+  const visible = [...DEFAULT_VISIBLE_KPIS] as DashboardKpiKey[];
+  const html = renderToStaticMarkup(
+    <KpiCards visibleKpis={visible} values={emptyValues(visible)} />
+  );
+
+  for (const key of DEFAULT_VISIBLE_KPIS) {
+    // Every default key's label must appear; "هزینه تبلیغات" is spend's label.
+    assert.ok(html.includes("هزینه تبلیغات"), `missing spend card`);
+    assert.ok(html.includes("نمایش‌ها"), `missing impressions card`);
+    assert.ok(html.includes("کلیک‌ها"), `missing clicks card`);
+    assert.ok(html.includes("کلیک روی لینک"), `missing linkClicks card`);
+    assert.ok(html.includes("نرخ کلیک (CTR)"), `missing ctr card`);
+    assert.ok(html.includes("هزینه به ازای کلیک (CPC)"), `missing cpc card`);
+    assert.ok(html.includes("هزینه به ازای هزار نمایش (CPM)"), `missing cpm card`);
+    break;
+  }
+});
+
+test("campaign table renders only the configured KPI columns", () => {
+  const visible = ["spend", "ctr"] as DashboardKpiKey[];
+  const campaigns = [
+    {
+      campaignId: "c1",
+      campaignName: "Campaign One",
+      adAccountId: "a1",
+      adAccountName: "Main Account",
+      capturedAt: new Date("2026-01-01T00:00:00.000Z"),
+      values: emptyValues(visible),
+    },
+  ];
+
+  const html = renderToStaticMarkup(
+    <CampaignPerformanceTable campaigns={campaigns} visibleKpis={visible} />
+  );
+
+  // Identity columns are always present.
+  assert.ok(html.includes("نام کمپین"));
+  assert.ok(html.includes("اکانت تبلیغاتی"));
+  assert.ok(html.includes("Campaign One"));
+  assert.ok(html.includes("Main Account"));
+
+  // Only configured metric columns render.
+  assert.ok(html.includes("هزینه تبلیغات"));
+  assert.ok(html.includes("نرخ کلیک (CTR)"));
+  assert.ok(!html.includes("نمایش‌ها"));
+  assert.ok(!html.includes("کلیک روی لینک"));
+  assert.ok(!html.includes("هزینه به ازای کلیک (CPC)"));
+});

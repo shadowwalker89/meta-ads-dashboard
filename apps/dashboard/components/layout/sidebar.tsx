@@ -3,23 +3,34 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { MockRole } from "@/lib/mock-auth";
 import {
   LayoutDashboard,
   Users,
   Megaphone,
   Settings,
   Navigation,
+  SlidersHorizontal,
 } from "lucide-react";
 
-const navItems = [
-  { title: "داشبورد", href: "/dashboard", icon: LayoutDashboard },
-  { title: "مشتریان", href: "/dashboard/clients", icon: Users },
-  { title: "کمپین‌ها", href: "/dashboard/campaigns", icon: Megaphone },
-  { title: "تنظیمات", href: "/dashboard/settings", icon: Settings },
-];
-
-export function Sidebar() {
+export function Sidebar({ role }: { role: MockRole }) {
   const pathname = usePathname();
+
+  const navItems = [
+    { title: "داشبورد", href: "/dashboard", icon: LayoutDashboard },
+    ...(role === "admin" || role === "super_admin"
+      ? [
+          {
+            title: "تنظیم KPI مشتریان",
+            href: "/dashboard/admin/kpi-config",
+            icon: SlidersHorizontal,
+          },
+        ]
+      : []),
+    { title: "مشتریان", href: "/dashboard/clients", icon: Users },
+    { title: "کمپین‌ها", href: "/dashboard/campaigns", icon: Megaphone },
+    { title: "تنظیمات", href: "/dashboard/settings", icon: Settings },
+  ];
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground">

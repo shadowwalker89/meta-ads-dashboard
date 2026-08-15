@@ -19,6 +19,20 @@ interface InsightSnapshotRow {
   cpc: number;
   cpm: number;
   reach: number;
+  frequency: number;
+  clicks_all: number;
+  unique_clicks: number;
+  unique_ctr: number;
+  landing_page_views: number;
+  outbound_clicks: number;
+  outbound_ctr: number;
+  leads: number;
+  messages_started: number;
+  messages_contacts: number;
+  results: number;
+  cost_per_result: number;
+  post_reactions: number;
+  post_comments: number;
   raw_payload: string | null;
 }
 
@@ -35,6 +49,20 @@ function toDomain(row: InsightSnapshotRow): InsightSnapshot {
     cpc: row.cpc,
     cpm: row.cpm,
     reach: row.reach,
+    frequency: row.frequency ?? 0,
+    clicksAll: row.clicks_all ?? 0,
+    uniqueClicks: row.unique_clicks ?? 0,
+    uniqueCtr: row.unique_ctr ?? 0,
+    landingPageViews: row.landing_page_views ?? 0,
+    outboundClicks: row.outbound_clicks ?? 0,
+    outboundCtr: row.outbound_ctr ?? 0,
+    leads: row.leads ?? 0,
+    messagesStarted: row.messages_started ?? 0,
+    messagesContacts: row.messages_contacts ?? 0,
+    results: row.results ?? 0,
+    costPerResult: row.cost_per_result ?? 0,
+    postReactions: row.post_reactions ?? 0,
+    postComments: row.post_comments ?? 0,
     rawPayload: row.raw_payload ? JSON.parse(row.raw_payload) : null,
   };
 }
@@ -47,8 +75,14 @@ export class SqliteInsightSnapshotRepository implements InsightSnapshotRepositor
     this.db
       .prepare(
         `INSERT INTO insight_snapshots
-           (id, campaign_id, captured_at, impressions, clicks, link_clicks, spend, ctr, cpc, cpm, reach, raw_payload)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           (id, campaign_id, captured_at,
+            impressions, clicks, link_clicks, spend, ctr, cpc, cpm, reach,
+            frequency, clicks_all, unique_clicks, unique_ctr,
+            landing_page_views, outbound_clicks, outbound_ctr,
+            leads, messages_started, messages_contacts, results, cost_per_result,
+            post_reactions, post_comments,
+            raw_payload)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         id,
@@ -62,6 +96,20 @@ export class SqliteInsightSnapshotRepository implements InsightSnapshotRepositor
         snapshot.cpc,
         snapshot.cpm,
         snapshot.reach,
+        snapshot.frequency ?? 0,
+        snapshot.clicksAll ?? 0,
+        snapshot.uniqueClicks ?? 0,
+        snapshot.uniqueCtr ?? 0,
+        snapshot.landingPageViews ?? 0,
+        snapshot.outboundClicks ?? 0,
+        snapshot.outboundCtr ?? 0,
+        snapshot.leads ?? 0,
+        snapshot.messagesStarted ?? 0,
+        snapshot.messagesContacts ?? 0,
+        snapshot.results ?? 0,
+        snapshot.costPerResult ?? 0,
+        snapshot.postReactions ?? 0,
+        snapshot.postComments ?? 0,
         snapshot.rawPayload ? JSON.stringify(snapshot.rawPayload) : null
       );
     return { id, ...snapshot };

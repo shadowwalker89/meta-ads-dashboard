@@ -1,6 +1,11 @@
 import type { Database } from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { DashboardPreference, DashboardPreferenceRepository } from "@repo/shared";
+import type {
+  DashboardPreference,
+  DashboardPreferenceRepository,
+  DashboardKpiKey,
+} from "@repo/shared";
+import { sanitizeDashboardKpiKeys } from "@repo/shared";
 
 interface DashboardPreferenceRow {
   id: string;
@@ -11,12 +16,24 @@ interface DashboardPreferenceRow {
   updated_at: string;
 }
 
+function parseVisibleMetrics(raw: string): DashboardKpiKey[] {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return sanitizeDashboardKpiKeys(parsed);
+  } catch {
+    // Corrupt JSON in storage — treat as empty so the dashboard falls
+    // back to the default set instead of crashing.
+    return [];
+  }
+}
+
 function toDomain(row: DashboardPreferenceRow): DashboardPreference {
   return {
     id: row.id,
     userId: row.user_id,
     clientId: row.client_id,
-    visibleMetrics: JSON.parse(row.visible_metrics),
+    visibleMetrics: parseVisibleMetrics(row.visible_metrics),
     theme: row.theme as DashboardPreference["theme"],
     updatedAt: new Date(row.updated_at),
   };
@@ -46,10 +63,13 @@ export class SqliteDashboardPreferenceRepository implements DashboardPreferenceR
   async save(
     pref: Omit<DashboardPreference, "id" | "updatedAt">
   ): Promise<DashboardPreference> {
-    const existing = pref.userId
-      ? await this.findForUser(pref.userId)
-      : pref.clientId
-        ? await this.findForClient(pref.clientId)
+    const sanitized = sanitizeDashboardKpiKeys(pref.visibleMetrics);
+    const cleanPref = { ...pref, visibleMetrics: sanitized };
+
+    const existing = cleanPref.userId
+      ? await this.findForUser(cleanPref.userId)
+      : cleanPref.clientId
+        ? await this.findForClient(cleanPref.clientId)
         : null;
 
     const updatedAt = new Date().toISOString();
@@ -61,8 +81,8 @@ export class SqliteDashboardPreferenceRepository implements DashboardPreferenceR
            SET visible_metrics = ?, theme = ?, updated_at = ?
            WHERE id = ?`
         )
-        .run(JSON.stringify(pref.visibleMetrics), pref.theme, updatedAt, existing.id);
-      return { ...existing, ...pref, updatedAt: new Date(updatedAt) };
+        .run(JSON.stringify(cleanPref.visibleMetrics), cleanPref.theme, updatedAt, existing.id);
+      return { ...existing, ...cleanPref, updatedAt: new Date(updatedAt) };
     }
 
     const id = randomUUID();
@@ -73,12 +93,12 @@ export class SqliteDashboardPreferenceRepository implements DashboardPreferenceR
       )
       .run(
         id,
-        pref.userId,
-        pref.clientId,
-        JSON.stringify(pref.visibleMetrics),
-        pref.theme,
+        cleanPref.userId,
+        cleanPref.clientId,
+        JSON.stringify(cleanPref.visibleMetrics),
+        cleanPref.theme,
         updatedAt
       );
-    return { id, ...pref, updatedAt: new Date(updatedAt) };
+    return { id, ...cleanPref, updatedAt: new Date(updatedAt) };
   }
 }

@@ -16,13 +16,27 @@ const EXPORT_BUTTON_SELECTOR = '[data-surface="/am/table/tool_bar/lib:quick-expo
 const COLUMN_LABELS = {
   scrapedLabel: "Campaign name",
   impressions: "Impressions",
-  clicks: "Clicks (all)",
+  clicks: "Link clicks",
   linkClicks: "Link clicks",
+  clicksAll: "Clicks (all)",
   spend: "Amount spent (USD)",
   ctr: "CTR (all)",
   cpc: "CPC (all) (USD)",
   cpm: "CPM (cost per 1,000 impressions) (USD)",
   reach: "Reach",
+  frequency: "Frequency",
+  uniqueClicks: "Unique clicks",
+  uniqueCtr: "Unique CTR (all)",
+  landingPageViews: "Landing page views",
+  outboundClicks: "Outbound clicks",
+  outboundCtr: "Outbound CTR",
+  leads: "Leads",
+  messagesStarted: "Messaging conversations started",
+  messagesContacts: "Messaging conversations",
+  results: "Results",
+  costPerResult: "Cost per result",
+  postReactions: "Post reactions",
+  postComments: "Post comments",
 } as const;
 
 /**
@@ -31,7 +45,7 @@ const COLUMN_LABELS = {
  * export is a simple, single-sheet CSV and this is a handful of
  * lines.
  */
-function parseCsv(content: string): string[][] {
+export function parseCsv(content: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -161,11 +175,25 @@ export async function scrapeCampaignTable(
     impressions: columnIndex(COLUMN_LABELS.impressions),
     clicks: columnIndex(COLUMN_LABELS.clicks),
     linkClicks: columnIndex(COLUMN_LABELS.linkClicks),
+    clicksAll: columnIndex(COLUMN_LABELS.clicksAll),
     spend: columnIndex(COLUMN_LABELS.spend),
     ctr: columnIndex(COLUMN_LABELS.ctr),
     cpc: columnIndex(COLUMN_LABELS.cpc),
     cpm: columnIndex(COLUMN_LABELS.cpm),
     reach: columnIndex(COLUMN_LABELS.reach),
+    frequency: columnIndex(COLUMN_LABELS.frequency),
+    uniqueClicks: columnIndex(COLUMN_LABELS.uniqueClicks),
+    uniqueCtr: columnIndex(COLUMN_LABELS.uniqueCtr),
+    landingPageViews: columnIndex(COLUMN_LABELS.landingPageViews),
+    outboundClicks: columnIndex(COLUMN_LABELS.outboundClicks),
+    outboundCtr: columnIndex(COLUMN_LABELS.outboundCtr),
+    leads: columnIndex(COLUMN_LABELS.leads),
+    messagesStarted: columnIndex(COLUMN_LABELS.messagesStarted),
+    messagesContacts: columnIndex(COLUMN_LABELS.messagesContacts),
+    results: columnIndex(COLUMN_LABELS.results),
+    costPerResult: columnIndex(COLUMN_LABELS.costPerResult),
+    postReactions: columnIndex(COLUMN_LABELS.postReactions),
+    postComments: columnIndex(COLUMN_LABELS.postComments),
   };
 
   if (indices.scrapedLabel === -1) {
@@ -195,11 +223,25 @@ export async function scrapeCampaignTable(
       impressions: field(indices.impressions),
       clicks: field(indices.clicks),
       linkClicks: field(indices.linkClicks),
+      clicksAll: field(indices.clicksAll),
       spend: field(indices.spend),
       ctr: field(indices.ctr),
       cpc: field(indices.cpc),
       cpm: field(indices.cpm),
       reach: field(indices.reach),
+      frequency: field(indices.frequency),
+      uniqueClicks: field(indices.uniqueClicks),
+      uniqueCtr: field(indices.uniqueCtr),
+      landingPageViews: field(indices.landingPageViews),
+      outboundClicks: field(indices.outboundClicks),
+      outboundCtr: field(indices.outboundCtr),
+      leads: field(indices.leads),
+      messagesStarted: field(indices.messagesStarted),
+      messagesContacts: field(indices.messagesContacts),
+      results: field(indices.results),
+      costPerResult: field(indices.costPerResult),
+      postReactions: field(indices.postReactions),
+      postComments: field(indices.postComments),
     });
   }
 

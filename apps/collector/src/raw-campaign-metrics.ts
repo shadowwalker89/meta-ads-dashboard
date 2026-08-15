@@ -14,4 +14,18 @@ export interface RawCampaignMetrics {
   cpc: string;
   cpm: string;
   reach: string;
+  frequency: string;
+  clicksAll: string;
+  uniqueClicks: string;
+  uniqueCtr: string;
+  landingPageViews: string;
+  outboundClicks: string;
+  outboundCtr: string;
+  leads: string;
+  messagesStarted: string;
+  messagesContacts: string;
+  results: string;
+  costPerResult: string;
+  postReactions: string;
+  postComments: string;
 }
