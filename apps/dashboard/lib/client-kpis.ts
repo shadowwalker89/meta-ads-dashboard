@@ -26,7 +26,7 @@ export interface ClientKpis {
 // total spend). The remaining KPI keys are rates/ratios computed from
 // these totals (see deriveClientMetrics) — summing per-campaign rates
 // would produce nonsense.
-const SUMMABLE_KEYS: readonly DashboardKpiKey[] = [
+export const SUMMABLE_KEYS: readonly DashboardKpiKey[] = [
   "spend",
   "impressions",
   "reach",
@@ -44,7 +44,7 @@ const SUMMABLE_KEYS: readonly DashboardKpiKey[] = [
   "postComments",
 ];
 
-function zeroKpiValues(): Record<DashboardKpiKey, number> {
+export function zeroKpiValues(): Record<DashboardKpiKey, number> {
   const values = {} as Record<DashboardKpiKey, number>;
   for (const def of KPI_CATALOG) {
     values[def.key] = 0;
@@ -52,7 +52,7 @@ function zeroKpiValues(): Record<DashboardKpiKey, number> {
   return values;
 }
 
-function snapshotToValues(snapshot: InsightSnapshot): Record<DashboardKpiKey, number> {
+export function snapshotToValues(snapshot: InsightSnapshot): Record<DashboardKpiKey, number> {
   return {
     spend: snapshot.spend,
     impressions: snapshot.impressions,
@@ -84,7 +84,7 @@ function snapshotToValues(snapshot: InsightSnapshot): Record<DashboardKpiKey, nu
  * summed: e.g. client CTR = total clicks / total impressions * 100, exactly
  * how the pre-configuration dashboard computed it.
  */
-function deriveClientMetrics(totals: Record<DashboardKpiKey, number>): Record<DashboardKpiKey, number> {
+export function deriveClientMetrics(totals: Record<DashboardKpiKey, number>): Record<DashboardKpiKey, number> {
   const {
     impressions,
     reach,

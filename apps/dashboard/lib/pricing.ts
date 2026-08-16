@@ -53,9 +53,10 @@ export async function getClientPricedKpis(
   clientId: string,
   rawValues: Partial<Record<DashboardKpiKey, number>>,
   at: Date = new Date(),
-  preloadedRules?: readonly PricingRule[]
+  preloadedRules?: readonly PricingRule[],
+  db: ReturnType<typeof getDatabase> = getDatabase()
 ): Promise<ClientPricedKpis> {
-  const repo = new SqlitePricingRuleRepository(getDatabase());
+  const repo = new SqlitePricingRuleRepository(db);
   const rules =
     preloadedRules ?? (await repo.findByClient(clientId));
 

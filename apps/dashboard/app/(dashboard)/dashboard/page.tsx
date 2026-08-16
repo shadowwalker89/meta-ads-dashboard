@@ -1,5 +1,5 @@
-import { requirePageAccess, requireClientAccess } from "@/lib/access";
-import { getClientPricingView } from "@/lib/client-pricing-view";
+import { requirePageAccess } from "@/lib/access";
+import { getClientDashboardData } from "@/lib/client-dashboard-data";
 import { getClientKpiConfiguration } from "@/lib/kpi-config";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { CampaignPerformanceTable } from "@/components/dashboard/campaign-performance-table";
@@ -9,16 +9,13 @@ export default async function DashboardPage() {
   const user = await requirePageAccess();
   const clientId = user.clientId ?? null;
 
-  // Even though clientId is derived from the authenticated user (never
-  // from request input), it is still routed through the boundary so the
-  // client-scoping rule lives in exactly one place.
-  if (clientId) {
-    await requireClientAccess(user, clientId);
-  }
-
-  const kpis = clientId
-    ? await getClientPricingView(clientId)
-    : { values: {} as Record<DashboardKpiKey, number>, campaignCount: 0, campaigns: [] };
+  // clientId is derived from the authenticated user (never from request
+  // input); the read service re-verifies it through the access boundary
+  // (requireClientAccess) regardless, so the scoping rule lives in one
+  // place and is enforced even for future callers that pass raw input.
+  const data = clientId
+    ? await getClientDashboardData(user, clientId)
+    : { values: {} as Record<DashboardKpiKey, number>, campaignCount: 0, snapshotCount: 0, campaigns: [] };
   const visibleKpis = clientId ? await getClientKpiConfiguration(clientId) : [];
 
   return (
@@ -34,7 +31,7 @@ export default async function DashboardPage() {
       </div>
 
       {visibleKpis.length > 0 ? (
-        <KpiCards visibleKpis={visibleKpis} values={kpis.values} />
+        <KpiCards visibleKpis={visibleKpis} values={data.values} />
       ) : (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
           {clientId
@@ -47,10 +44,11 @@ export default async function DashboardPage() {
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold">عملکرد کمپین‌ها</h2>
           <p className="text-xs text-muted-foreground">
-            جزئیات عملکرد هر کمپین بر اساس آخرین داده‌ی جمع‌آوری‌شده
+            جزئیات عملکرد هر کمپین بر اساس آخرین داده‌ی جمع‌آوری‌شده در بازه‌ی
+            ۳۰ روز اخیر
           </p>
         </div>
-        <CampaignPerformanceTable campaigns={kpis.campaigns} visibleKpis={visibleKpis} />
+        <CampaignPerformanceTable campaigns={data.campaigns} visibleKpis={visibleKpis} />
       </section>
     </div>
   );

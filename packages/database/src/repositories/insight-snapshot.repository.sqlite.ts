@@ -152,4 +152,45 @@ export class SqliteInsightSnapshotRepository implements InsightSnapshotRepositor
     const nextCursor = items.length === page.limit ? String(offset + page.limit) : null;
     return { items, nextCursor };
   }
+
+  async findLatestForCampaigns(
+    campaignIds: readonly string[],
+    from: Date,
+    to: Date
+  ): Promise<InsightSnapshot[]> {
+    if (campaignIds.length === 0) return [];
+
+    const placeholders = campaignIds.map(() => "?").join(", ");
+    const fromIso = from.toISOString();
+    const toIso = to.toISOString();
+
+    // Latest snapshot per campaign within the range: subquery finds the
+    // max captured_at per campaign, the join keeps exactly those rows.
+    // captured_at is ISO-8601 UTC text, so lexical ordering == time
+    // ordering (same format for every stored value).
+    const rows = this.db
+      .prepare(
+        `SELECT s.* FROM insight_snapshots s
+         JOIN (
+           SELECT campaign_id, MAX(captured_at) AS max_captured
+           FROM insight_snapshots
+           WHERE campaign_id IN (${placeholders})
+             AND captured_at BETWEEN ? AND ?
+           GROUP BY campaign_id
+         ) m ON m.campaign_id = s.campaign_id AND s.captured_at = m.max_captured
+         WHERE s.campaign_id IN (${placeholders})
+           AND s.captured_at BETWEEN ? AND ?
+         ORDER BY s.campaign_id`
+      )
+      .all(
+        ...campaignIds,
+        fromIso,
+        toIso,
+        ...campaignIds,
+        fromIso,
+        toIso
+      ) as InsightSnapshotRow[];
+
+    return rows.map(toDomain);
+  }
 }
