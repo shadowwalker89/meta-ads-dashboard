@@ -2,6 +2,7 @@
 // no SQL. Mirrors docs/domain-model.md.
 
 import type { DashboardKpiKey } from "./kpi-catalog";
+import type { PackagePricingDefaults } from "./pricing";
 
 export type UserRole = "super_admin" | "admin" | "client";
 
@@ -20,14 +21,62 @@ export interface Client {
   businessType: string;
   contactEmail: string;
   packageId: string;
+  /**
+   * When the client was assigned to its current package. Set at client
+   * creation and refreshed whenever packageId changes (reassignment).
+   * Backfilled to created_at for legacy rows. This timestamp is the
+   * lifecycle anchor for future package changes and package
+   * pricing-default propagation.
+   */
+  packageAssignedAt: Date;
   isActive: boolean;
   createdAt: Date;
+}
+
+/**
+ * Feature entitlements a package grants. Boolean per feature; the client
+ * dashboard renders only what the package allows. These are stored as
+ * package data (rows), never hard-coded tier logic.
+ */
+export interface PackageFeatures {
+  charts: boolean;
+  dataExport: boolean;
+  advancedReporting: boolean;
 }
 
 export interface Package {
   id: string;
   name: string;
   description: string;
+  /**
+   * Stable machine key for the tier (e.g. "bronze", "silver", "gold").
+   * Nullable only for backward compatibility with rows created before
+   * the column existed; the seed and repository always write a
+   * non-empty code. Unique when present.
+   */
+  code: string | null;
+  /**
+   * Collections per day the package entitles. Package-authoritative
+   * (Bronze/Silver/Gold values are seed data, not code).
+   */
+  collectionFrequency: number;
+  /** Max connected ad accounts; null = unlimited. Package-authoritative. */
+  maxAdAccounts: number | null;
+  /** Max tracked campaigns; null = unlimited. Package-authoritative. */
+  maxCampaigns: number | null;
+  /** Report-history retention in days; null = keep indefinitely. */
+  retentionDays: number | null;
+  /**
+   * Default KPI set for a client with no explicit preference. Per-client
+   * DashboardPreference still wins when present.
+   */
+  defaultVisibleKpis: DashboardKpiKey[];
+  features: PackageFeatures;
+  /**
+   * Default pricing per pricable metric — the starting point that feeds
+   * the client-scoped PricingRule foundation. Never the runtime truth.
+   */
+  pricingDefaults: PackagePricingDefaults;
   metricThresholds: Record<string, unknown>;
   createdAt: Date;
 }

@@ -9,3 +9,4 @@ export * from "./insight-snapshot.repository";
 export * from "./dashboard-preference.repository";
 export * from "./audit-log.repository";
 export * from "./collector-job.repository";
+export * from "./pricing-rule.repository";

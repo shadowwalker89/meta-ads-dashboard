@@ -1,25 +1,20 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { MOCK_SESSION_COOKIE, type MockRole } from "@/lib/mock-auth";
+import { getAuthProvider } from "@/lib/auth";
 
-export async function loginAsMockUser(userId: string, role: MockRole) {
-  const store = await cookies();
-  store.set(
-    MOCK_SESSION_COOKIE,
-    JSON.stringify({ userId, role }),
-    {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-    }
-  );
+/**
+ * Provider-agnostic sign-in. The provider resolves the email to an
+ * application User (mock: seeded account only) and records the session.
+ */
+export async function signIn(email: string) {
+  const provider = getAuthProvider();
+  await provider.signIn({ email });
   redirect("/dashboard");
 }
 
-export async function logoutMock() {
-  const store = await cookies();
-  store.delete(MOCK_SESSION_COOKIE);
+export async function signOut() {
+  const provider = getAuthProvider();
+  await provider.signOut();
   redirect("/login");
 }

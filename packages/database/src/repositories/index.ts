@@ -8,3 +8,4 @@ export * from "./insight-snapshot.repository.sqlite.js";
 export * from "./dashboard-preference.repository.sqlite.js";
 export * from "./audit-log.repository.sqlite.js";
 export * from "./collector-job.repository.sqlite.js";
+export * from "./pricing-rule.repository.sqlite.js";

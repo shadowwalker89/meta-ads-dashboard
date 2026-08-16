@@ -276,17 +276,21 @@ export function sanitizeDashboardKpiKeys(keys: readonly unknown[]): DashboardKpi
 
 /**
  * Resolves what a client should see: explicit preference wins, otherwise
- * the default set. The preference carries raw keys so this stays safe
- * against corrupt/obsolete persisted values.
+ * the package's default KPI set, otherwise the global default set. The
+ * preference carries raw keys so this stays safe against
+ * corrupt/obsolete persisted values; packageDefault is already
+ * sanitized at the repository boundary.
  */
 export function resolveVisibleKpis(
-  preference: { visibleMetrics: readonly unknown[] } | null
+  preference: { visibleMetrics: readonly unknown[] } | null,
+  packageDefault?: readonly DashboardKpiKey[]
 ): DashboardKpiKey[] {
-  if (!preference) {
-    return [...DEFAULT_VISIBLE_KPIS];
+  if (preference) {
+    const sanitized = sanitizeDashboardKpiKeys(preference.visibleMetrics);
+    if (sanitized.length > 0) return sanitized;
   }
-  const sanitized = sanitizeDashboardKpiKeys(preference.visibleMetrics);
-  return sanitized.length > 0 ? sanitized : [...DEFAULT_VISIBLE_KPIS];
+  if (packageDefault && packageDefault.length > 0) return [...packageDefault];
+  return [...DEFAULT_VISIBLE_KPIS];
 }
 
 /**

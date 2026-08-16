@@ -1,16 +1,23 @@
-import { getCurrentUser } from "@/lib/get-current-user";
-import { getClientKpis, type ClientKpis } from "@/lib/client-kpis";
+import { requirePageAccess, requireClientAccess } from "@/lib/access";
+import { getClientPricingView } from "@/lib/client-pricing-view";
 import { getClientKpiConfiguration } from "@/lib/kpi-config";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { CampaignPerformanceTable } from "@/components/dashboard/campaign-performance-table";
 import type { DashboardKpiKey } from "@repo/shared";
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  const clientId = user?.clientId ?? null;
+  const user = await requirePageAccess();
+  const clientId = user.clientId ?? null;
 
-  const kpis: ClientKpis = clientId
-    ? await getClientKpis(clientId)
+  // Even though clientId is derived from the authenticated user (never
+  // from request input), it is still routed through the boundary so the
+  // client-scoping rule lives in exactly one place.
+  if (clientId) {
+    await requireClientAccess(user, clientId);
+  }
+
+  const kpis = clientId
+    ? await getClientPricingView(clientId)
     : { values: {} as Record<DashboardKpiKey, number>, campaignCount: 0, campaigns: [] };
   const visibleKpis = clientId ? await getClientKpiConfiguration(clientId) : [];
 
@@ -22,7 +29,7 @@ export default async function DashboardPage() {
           نمای کلی عملکرد کمپین‌های تبلیغاتی
         </p>
         <p className="text-xs text-muted-foreground">
-          {user ? `${user.fullName} (${user.email})` : "کاربر وارد نشده"}
+          {user.fullName} ({user.email})
         </p>
       </div>
 

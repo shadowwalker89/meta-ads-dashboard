@@ -10,6 +10,16 @@ import type {
 import type { CollectorProvider } from "./collector-provider.js";
 import type { MetricsParser } from "./metrics-parser.js";
 
+/**
+ * The business rule a write path must satisfy before creating a
+ * resource. Implemented by SqlitePackageEnforcement (which reads limits
+ * from the Package entity, never from package code strings). Kept as an
+ * interface here so the orchestrator stays decoupled from storage.
+ */
+export interface PackageLimitEnforcer {
+  assertCanCreateCampaign(clientId: string): Promise<void>;
+}
+
 export interface CollectorOrchestratorDeps {
   clientRepository: ClientRepository;
   adAccountRepository: AdAccountRepository;
@@ -18,6 +28,8 @@ export interface CollectorOrchestratorDeps {
   insightSnapshotRepository: InsightSnapshotRepository;
   collectorProvider: CollectorProvider;
   metricsParser: MetricsParser;
+  /** Enforces Package.maxCampaigns before a NEW campaign is created. */
+  packageEnforcement: PackageLimitEnforcer;
 }
 
 /**
@@ -55,7 +67,7 @@ export class CollectorOrchestrator {
       const rawRows = await this.deps.collectorProvider.collect(adAccount);
 
       for (const raw of rawRows) {
-        const campaign = await this.discoverCampaign(adAccount.id, raw.scrapedLabel);
+        const campaign = await this.discoverCampaign(adAccount, raw.scrapedLabel);
 
         const parsed = this.deps.metricsParser.parse(raw);
         await this.deps.insightSnapshotRepository.append({
@@ -81,13 +93,18 @@ export class CollectorOrchestrator {
    * Campaigns are matched and reused; a new one is only created when
    * no match exists — never with a made-up id, so InsightSnapshot's
    * foreign key always points at a real row.
+   *
+   * Package enforcement runs only on the CREATE branch: discovering an
+   * existing campaign consumes no new slot, so an at-limit client can
+   * still collect the campaigns it already has. A new campaign beyond
+   * the limit throws, which surfaces as CollectorJob.status = "failed".
    */
   private async discoverCampaign(
-    adAccountId: string,
+    adAccount: AdAccount,
     scrapedLabel: string
   ): Promise<Campaign> {
     const existing = await this.deps.campaignRepository.findByAdAccountAndLabel(
-      adAccountId,
+      adAccount.id,
       scrapedLabel
     );
 
@@ -98,8 +115,10 @@ export class CollectorOrchestrator {
       return existing;
     }
 
+    await this.deps.packageEnforcement.assertCanCreateCampaign(adAccount.clientId);
+
     const created = await this.deps.campaignRepository.create({
-      adAccountId,
+      adAccountId: adAccount.id,
       name: scrapedLabel,
       objective: "unknown",
       status: "unknown",

@@ -26,20 +26,40 @@ function createTestDb() {
 }
 
 async function createClient(db: DatabaseType) {
-  const packages = new SqlitePackageRepository(db);
-  const clients = new SqliteClientRepository(db);
-  const pkg = await packages.create({
-    name: "Gold",
-    description: "Gold plan",
-    metricThresholds: {},
-  });
-  return clients.create({
+  const pkg = await ensurePackage(db);
+  return new SqliteClientRepository(db).create({
     name: "Test Client",
     businessType: "E-commerce",
     contactEmail: "client@example.com",
     packageId: pkg.id,
     isActive: true,
   });
+}
+
+// A package is one tier row per code, so every client in a test shares a
+// single package — creating a new one per client would hit the unique
+// code constraint and mis-model reality.
+const packageByDb = new WeakMap<DatabaseType, { id: string }>();
+
+async function ensurePackage(db: DatabaseType) {
+  const existing = packageByDb.get(db);
+  if (existing) return existing;
+  const packages = new SqlitePackageRepository(db);
+  const pkg = await packages.create({
+    name: "Gold",
+    description: "Gold plan",
+    code: "gold",
+    collectionFrequency: 12,
+    maxAdAccounts: null,
+    maxCampaigns: null,
+    retentionDays: null,
+    defaultVisibleKpis: [],
+    features: { charts: false, dataExport: false, advancedReporting: false },
+    pricingDefaults: {},
+    metricThresholds: {},
+  });
+  packageByDb.set(db, pkg);
+  return pkg;
 }
 
 test("KPI catalog: default config is used when no preference exists", async () => {

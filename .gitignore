@@ -6,3 +6,9 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Collector debug artifacts (session dumps / export probes) —
+# contain real logged-in Meta page data, never commit them.
+.collector-session-debug*
+.collector-export-debug*
+.collector-session/

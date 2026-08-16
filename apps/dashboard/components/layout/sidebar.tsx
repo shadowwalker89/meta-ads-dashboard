@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { MockRole } from "@/lib/mock-auth";
+import type { UserRole } from "@repo/shared";
 import {
   LayoutDashboard,
   Users,
@@ -11,9 +11,12 @@ import {
   Settings,
   Navigation,
   SlidersHorizontal,
+  BadgeDollarSign,
+  Package,
+  ArrowRightLeft,
 } from "lucide-react";
 
-export function Sidebar({ role }: { role: MockRole }) {
+export function Sidebar({ role }: { role: UserRole }) {
   const pathname = usePathname();
 
   const navItems = [
@@ -24,6 +27,30 @@ export function Sidebar({ role }: { role: MockRole }) {
             title: "تنظیم KPI مشتریان",
             href: "/dashboard/admin/kpi-config",
             icon: SlidersHorizontal,
+          },
+        ]
+      : []),
+    ...(role === "super_admin"
+      ? [
+          {
+            title: "مدیریت پکیج‌ها",
+            href: "/dashboard/admin/packages",
+            icon: Package,
+          },
+          {
+            title: "اختصاص پکیج",
+            href: "/dashboard/admin/packages/assign",
+            icon: ArrowRightLeft,
+          },
+          {
+            title: "بررسی قیمت‌گذاری",
+            href: "/dashboard/admin/pricing",
+            icon: BadgeDollarSign,
+          },
+          {
+            title: "تنظیم قیمت‌گذاری",
+            href: "/dashboard/admin/pricing/config",
+            icon: BadgeDollarSign,
           },
         ]
       : []),

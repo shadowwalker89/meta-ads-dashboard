@@ -1,44 +1,113 @@
 import {
-  SqliteAdminAssignmentRepository,
   SqliteClientRepository,
   SqliteDashboardPreferenceRepository,
 } from "@repo/database";
+import { sqliteAuditService } from "@/lib/audit";
 import { getDatabase } from "@/lib/db";
+import {
+  accessibleClientIds,
+  requireClientAccess,
+  requireRole,
+} from "@/lib/access";
+import { getClientPackageSettings } from "@/lib/package-settings";
 import type { DashboardKpiKey, User } from "@repo/shared";
-import { canUserConfigureClientKpis, resolveVisibleKpis } from "@repo/shared";
+import { sanitizeDashboardKpiKeys } from "@repo/shared";
+
+type Db = ReturnType<typeof getDatabase>;
+
+export type SaveKpiConfigResult =
+  | { ok: true; savedKeys: DashboardKpiKey[] }
+  | { ok: false; error: string };
+
+function kpiKeySetEqual(
+  a: readonly DashboardKpiKey[],
+  b: readonly DashboardKpiKey[]
+): boolean {
+  const sorted = (keys: readonly DashboardKpiKey[]) => [...keys].sort();
+  const sa = sorted(a);
+  const sb = sorted(b);
+  return sa.length === sb.length && sa.every((key, i) => key === sb[i]);
+}
 
 /**
- * Server-only. Resolves the KPI set a client should see: explicit
- * preference if one exists, otherwise the default set. Invalid/obsolete
- * stored keys are dropped safely by resolveVisibleKpis.
+ * The ONLY application entry point for saving a client's visible KPI
+ * set. Enforces the central tenant-access boundary (admin → assigned
+ * clients only, super_admin → any), persists via the existing
+ * preference repository, and records an audit entry ONLY when the
+ * effective configuration actually changed — re-saving the same set is
+ * a silent no-op for the audit trail. Audit runs only after the save
+ * succeeded, so a failed save never produces a success audit record.
+ */
+export async function runSaveClientKpiConfig(
+  user: Pick<User, "role" | "id" | "clientId">,
+  clientId: string,
+  keys: readonly unknown[],
+  db: Db = getDatabase()
+): Promise<SaveKpiConfigResult> {
+  try {
+    requireRole(user, "admin", "super_admin");
+    await requireClientAccess(user, clientId, db);
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "شما اجازه‌ی انجام این کار را ندارید.",
+    };
+  }
+
+  const sanitized = sanitizeDashboardKpiKeys(keys);
+  const repo = new SqliteDashboardPreferenceRepository(db);
+  const existing = await repo.findForClient(clientId);
+  const previous = existing?.visibleMetrics ?? [];
+
+  await repo.save({
+    userId: null,
+    clientId,
+    visibleMetrics: sanitized,
+    theme: existing?.theme ?? "system",
+  });
+
+  if (!kpiKeySetEqual(previous, sanitized)) {
+    await sqliteAuditService(db).recordKpiConfigChanged(user, clientId, sanitized, previous);
+  }
+
+  return { ok: true, savedKeys: sanitized };
+}
+
+/**
+ * Server-only. Resolves the KPI set the real dashboard should show for
+ * a client, with the single documented precedence:
+ *
+ *   client DashboardPreference → Package.defaultVisibleKpis → global
+ *   DEFAULT_VISIBLE_KPIS
+ *
+ * Reuses the existing pure resolver (resolveClientPackageSettings in
+ * lib/package-settings.ts) rather than re-implementing the rule.
+ * Invalid/obsolete stored keys are dropped safely by that resolver.
+ * The database handle is injectable for tests (defaults to
+ * getDatabase()).
  */
 export async function getClientKpiConfiguration(
-  clientId: string
+  clientId: string,
+  db: Db = getDatabase()
 ): Promise<DashboardKpiKey[]> {
-  const repo = new SqliteDashboardPreferenceRepository(getDatabase());
-  const preference = await repo.findForClient(clientId);
-  return resolveVisibleKpis(preference);
+  const settings = await getClientPackageSettings(clientId, db);
+  return settings.visibleKpis;
 }
 
 /**
  * Server-only. The list of clients the given admin may configure, and
- * each client's current resolved KPI set. super_admin sees all clients;
- * a normal admin sees only their assigned clients.
+ * each client's current resolved KPI set. Uses the central tenant-access
+ * boundary (accessibleClientIds): super_admin sees all clients, a normal
+ * admin sees only their assigned clients.
  */
 export async function getKpiAdminPageData(
-  user: Pick<User, "role" | "id">
+  user: Pick<User, "role" | "id" | "clientId">
 ): Promise<{ clients: { id: string; name: string }[]; configs: Record<string, DashboardKpiKey[]> }> {
   const db = getDatabase();
   const clientRepo = new SqliteClientRepository(db);
 
-  let clientIds: string[];
-  if (user.role === "super_admin") {
-    const all = await clientRepo.list({ limit: 1000 });
-    clientIds = all.items.map((c) => c.id);
-  } else {
-    const assignments = await new SqliteAdminAssignmentRepository(db).findByAdmin(user.id);
-    clientIds = assignments.map((a) => a.clientId);
-  }
+  const clientIds = await accessibleClientIds(user);
 
   const clients = (await clientRepo.findByIds(clientIds)).map((c) => ({
     id: c.id,
@@ -51,25 +120,4 @@ export async function getKpiAdminPageData(
   }
 
   return { clients, configs };
-}
-
-/**
- * Server-side authorization gate for KPI configuration. Throws (does not
- * return false) so the mutation fails loudly instead of silently no-oping:
- * clients can never configure their own KPIs, and a normal admin can only
- * configure their assigned clients.
- */
-export async function assertCanConfigureKpis(
-  user: Pick<User, "role" | "id">,
-  clientId: string
-): Promise<void> {
-  const db = getDatabase();
-  let adminAssignedClientIds: readonly string[] = [];
-  if (user.role === "admin") {
-    const assignments = await new SqliteAdminAssignmentRepository(db).findByAdmin(user.id);
-    adminAssignedClientIds = assignments.map((a) => a.clientId);
-  }
-  if (!canUserConfigureClientKpis(user, clientId, adminAssignedClientIds)) {
-    throw new Error("شما اجازه‌ی تنظیم KPI این مشتری را ندارید.");
-  }
 }

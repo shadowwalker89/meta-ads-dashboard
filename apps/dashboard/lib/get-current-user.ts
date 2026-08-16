@@ -1,21 +1,15 @@
-import { SqliteUserRepository } from "@repo/database";
 import type { User } from "@repo/shared";
-import { getMockSession } from "@/lib/mock-auth";
-import { getDatabase } from "@/lib/db";
+import { resolveCurrentUser } from "@/lib/auth";
 
 /**
- * Resolves the currently mock-authenticated User from SQLite.
+ * Resolves the currently authenticated User for the request, or null.
  * Server-only — never import from middleware.ts.
  *
- * The mock session stores the seeded user's email as `userId` (seed ids
- * are randomUUID()s the dashboard cannot know), so the user is looked
- * up by email.
+ * Pure delegation to the auth boundary: AuthProvider.getSession() yields
+ * an identity and AuthUserMapper finds the matching application User.
+ * The mock provider resolves the seeded user's email; the future
+ * Supabase provider resolves the Auth user.id.
  */
-export async function getCurrentUser(): Promise<User | null> {
-  const session = await getMockSession();
-  if (!session) {
-    return null;
-  }
-  const users = new SqliteUserRepository(getDatabase());
-  return users.findByEmail(session.userId);
+export function getCurrentUser(): Promise<User | null> {
+  return resolveCurrentUser();
 }

@@ -5,6 +5,67 @@ import {
   SqliteClientRepository,
   SqlitePackageRepository,
 } from "./repositories/index.js";
+import type {
+  DashboardKpiKey,
+  PackageFeatures,
+  PackagePricingDefaults,
+} from "@repo/shared";
+import { DEFAULT_VISIBLE_KPIS } from "@repo/shared";
+
+interface TierSettings {
+  code: string;
+  description: string;
+  collectionFrequency: number;
+  maxAdAccounts: number | null;
+  maxCampaigns: number | null;
+  retentionDays: number | null;
+  defaultVisibleKpis: DashboardKpiKey[];
+  features: PackageFeatures;
+  pricingDefaults: PackagePricingDefaults;
+}
+
+/**
+ * Baseline tier data. These are DB rows, not business logic — tiers and
+ * their settings are editable package data and nothing in TypeScript
+ * branches on a code. Frequencies follow the planned Bronze 1 / Silver 4
+ * / Gold 12 collections-per-day; limits and features are conservative
+ * starting points to be finalized with the project owner.
+ */
+const TIER_SETTINGS: Record<string, TierSettings> = {
+  Bronze: {
+    code: "bronze",
+    description: "برنز",
+    collectionFrequency: 1,
+    maxAdAccounts: null,
+    maxCampaigns: null,
+    retentionDays: 30,
+    defaultVisibleKpis: [...DEFAULT_VISIBLE_KPIS],
+    features: { charts: false, dataExport: false, advancedReporting: false },
+    pricingDefaults: {},
+  },
+  Silver: {
+    code: "silver",
+    description: "نقره‌ای",
+    collectionFrequency: 4,
+    maxAdAccounts: null,
+    maxCampaigns: null,
+    retentionDays: 90,
+    defaultVisibleKpis: [...DEFAULT_VISIBLE_KPIS],
+    features: { charts: true, dataExport: true, advancedReporting: false },
+    pricingDefaults: {},
+  },
+  Gold: {
+    code: "gold",
+    description: "طلایی",
+    collectionFrequency: 12,
+    maxAdAccounts: null,
+    maxCampaigns: null,
+    retentionDays: 365,
+    defaultVisibleKpis: [...DEFAULT_VISIBLE_KPIS],
+    features: { charts: true, dataExport: true, advancedReporting: true },
+    pricingDefaults: {},
+  },
+};
 
 async function seed() {
   const db = openDatabase();
@@ -15,19 +76,20 @@ async function seed() {
   const packages = new SqlitePackageRepository(db);
 
   console.log("Seeding 3 packages...");
-  const packageNames = ["Bronze", "Silver", "Gold"];
-  const existingPackages = await packages.listAll();
-  const packagesByName = new Map(existingPackages.map((p) => [p.name, p]));
   const createdPackages = [];
-  for (const name of packageNames) {
-    const existing = packagesByName.get(name);
+  for (const [name, settings] of Object.entries(TIER_SETTINGS)) {
+    // A tier is identified by its stable code (findByCode), not by name —
+    // legacy DBs can contain duplicate-named rows, and only the row with
+    // the tier code should carry the tier settings.
+    const existing = await packages.findByCode(settings.code);
     if (existing) {
-      createdPackages.push(existing);
+      const updated = await packages.update(existing.id, settings);
+      createdPackages.push(updated);
       continue;
     }
     const pkg = await packages.create({
       name,
-      description: `${name} plan`,
+      ...settings,
       metricThresholds: {},
     });
     createdPackages.push(pkg);

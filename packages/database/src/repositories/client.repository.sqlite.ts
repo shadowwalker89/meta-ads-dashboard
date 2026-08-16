@@ -13,6 +13,7 @@ interface ClientRow {
   business_type: string;
   contact_email: string;
   package_id: string;
+  package_assigned_at: string;
   is_active: number;
   created_at: string;
 }
@@ -24,6 +25,11 @@ function toDomain(row: ClientRow): Client {
     businessType: row.business_type,
     contactEmail: row.contact_email,
     packageId: row.package_id,
+    // Legacy rows written before migration 007 fall back to created_at —
+    // the same conservative assumption the migration's backfill uses.
+    packageAssignedAt: row.package_assigned_at
+      ? new Date(row.package_assigned_at)
+      : new Date(row.created_at),
     isActive: row.is_active === 1,
     createdAt: new Date(row.created_at),
   };
@@ -61,13 +67,15 @@ export class SqliteClientRepository implements ClientRepository {
     return { items, nextCursor };
   }
 
-  async create(client: Omit<Client, "id" | "createdAt">): Promise<Client> {
+  async create(
+    client: Omit<Client, "id" | "createdAt" | "packageAssignedAt">
+  ): Promise<Client> {
     const id = randomUUID();
     const createdAt = new Date().toISOString();
     this.db
       .prepare(
-        `INSERT INTO clients (id, name, business_type, contact_email, package_id, is_active, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO clients (id, name, business_type, contact_email, package_id, package_assigned_at, is_active, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         id,
@@ -75,10 +83,16 @@ export class SqliteClientRepository implements ClientRepository {
         client.businessType,
         client.contactEmail,
         client.packageId,
+        createdAt,
         client.isActive ? 1 : 0,
         createdAt
       );
-    return { id, ...client, createdAt: new Date(createdAt) };
+    return {
+      id,
+      ...client,
+      packageAssignedAt: new Date(createdAt),
+      createdAt: new Date(createdAt),
+    };
   }
 
   async update(
@@ -90,10 +104,27 @@ export class SqliteClientRepository implements ClientRepository {
       throw new Error(`Client not found: ${id}`);
     }
     const merged: Client = { ...existing, ...changes };
+
+    // A package change is a REASSIGNMENT: refresh the assignment
+    // timestamp (now, or an explicitly provided one). Non-package
+    // updates and same-package updates preserve the existing timestamp.
+    if (
+      changes.packageId !== undefined &&
+      changes.packageId !== existing.packageId
+    ) {
+      const pkgExists = this.db
+        .prepare("SELECT 1 FROM packages WHERE id = ?")
+        .get(changes.packageId);
+      if (!pkgExists) {
+        throw new Error(`Package not found: ${changes.packageId}`);
+      }
+      merged.packageAssignedAt = changes.packageAssignedAt ?? new Date();
+    }
+
     this.db
       .prepare(
         `UPDATE clients
-         SET name = ?, business_type = ?, contact_email = ?, package_id = ?, is_active = ?
+         SET name = ?, business_type = ?, contact_email = ?, package_id = ?, package_assigned_at = ?, is_active = ?
          WHERE id = ?`
       )
       .run(
@@ -101,6 +132,7 @@ export class SqliteClientRepository implements ClientRepository {
         merged.businessType,
         merged.contactEmail,
         merged.packageId,
+        merged.packageAssignedAt.toISOString(),
         merged.isActive ? 1 : 0,
         id
       );

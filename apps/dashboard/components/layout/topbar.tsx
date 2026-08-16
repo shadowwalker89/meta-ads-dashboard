@@ -2,28 +2,21 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { logoutMock } from "@/app/login/actions";
-import type { MockRole } from "@/lib/mock-auth";
+import { signOut } from "@/app/login/actions";
 
-const roleLabels: Record<MockRole, string> = {
-  super_admin: "مدیر کل",
-  admin: "ادمین",
-  client: "مشتری",
-};
-
-export function Topbar({ role }: { role: MockRole }) {
+export function Topbar({ fullName }: { fullName: string }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur supports-backdrop-filter sm:px-6">
       <div className="flex items-center gap-3">
         <MobileNav />
         <span className="text-sm text-muted-foreground">
           خوش آمدید،{" "}
-          <span className="font-medium text-foreground">{roleLabels[role]}</span>
+          <span className="font-medium text-foreground">{fullName}</span>
         </span>
       </div>
       <div className="flex items-center gap-1.5">
         <ModeToggle />
-        <form action={logoutMock}>
+        <form action={signOut}>
           <Button
             type="submit"
             variant="ghost"

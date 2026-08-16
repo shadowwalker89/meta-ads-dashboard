@@ -27,6 +27,14 @@ test("findByAdAccountAndLabel finds an existing campaign and returns null for an
   const pkg = await packages.create({
     name: "Gold",
     description: "Gold plan",
+    code: "gold",
+    collectionFrequency: 12,
+    maxAdAccounts: null,
+    maxCampaigns: null,
+    retentionDays: null,
+    defaultVisibleKpis: [],
+    features: { charts: false, dataExport: false, advancedReporting: false },
+    pricingDefaults: {},
     metricThresholds: {},
   });
 

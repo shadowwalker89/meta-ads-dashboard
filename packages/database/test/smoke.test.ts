@@ -40,6 +40,7 @@ test("database opens and migrations create all expected tables", () => {
     "dashboard_preferences",
     "audit_logs",
     "collector_jobs",
+    "pricing_rules",
   ]) {
     assert.ok(tables.includes(expected), `missing table: ${expected}`);
   }
@@ -57,6 +58,14 @@ test("repositories can write and read back seeded-style data", async () => {
   const pkg = await packages.create({
     name: "Gold",
     description: "Gold plan",
+    code: "gold",
+    collectionFrequency: 12,
+    maxAdAccounts: null,
+    maxCampaigns: null,
+    retentionDays: null,
+    defaultVisibleKpis: [],
+    features: { charts: false, dataExport: false, advancedReporting: false },
+    pricingDefaults: {},
     metricThresholds: { minViews: 1000 },
   });
 
@@ -111,6 +120,14 @@ test("insight snapshots round-trip extended metrics and old rows default to 0", 
   const pkg = await packages.create({
     name: "Gold",
     description: "Gold plan",
+    code: "gold",
+    collectionFrequency: 12,
+    maxAdAccounts: null,
+    maxCampaigns: null,
+    retentionDays: null,
+    defaultVisibleKpis: [],
+    features: { charts: false, dataExport: false, advancedReporting: false },
+    pricingDefaults: {},
     metricThresholds: {},
   });
   const client = await clients.create({
