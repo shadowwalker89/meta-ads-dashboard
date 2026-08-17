@@ -10,7 +10,7 @@ import {
   SqlitePackageRepository,
   SqliteUserRepository,
 } from "@repo/database";
-import type { Package, UserRole } from "@repo/shared";
+import type { DashboardKpiKey, Package, UserRole } from "@repo/shared";
 import { getClientPackageFeatures } from "@/lib/package-features";
 import { AccessError } from "@/lib/access";
 import { ChartSection } from "@/components/dashboard/chart-section";
@@ -215,9 +215,24 @@ test("package features: super_admin reads any client's features", async () => {
 // conditional (`features?.charts ? <ChartSection /> : null`).
 
 test("package features: chart and advanced-reporting surfaces render their sections", () => {
-  const chartHtml = renderToStaticMarkup(<ChartSection />);
-  assert.ok(chartHtml.includes("نمودارها"));
-  assert.ok(chartHtml.includes("data-slot=\"feature-section\""));
+  const chartHtml = renderToStaticMarkup(
+    <ChartSection
+      campaigns={[
+        {
+          campaignId: "c-1",
+          campaignName: "Campaign A",
+          adAccountId: "a-1",
+          adAccountName: "Account A",
+          values: { spend: 100 } as Record<DashboardKpiKey, number>,
+          capturedAt: new Date("2026-01-15T00:00:00.000Z"),
+        },
+      ]}
+      availableMetrics={["spend"]}
+      period={30}
+    />
+  );
+  assert.ok(chartHtml.includes("مقایسه‌ی کمپین‌ها"));
+  assert.ok(chartHtml.includes("data-slot=\"chart-section\""));
 
   const advancedHtml = renderToStaticMarkup(<AdvancedReportingSection />);
   assert.ok(advancedHtml.includes("گزارش پیشرفته"));

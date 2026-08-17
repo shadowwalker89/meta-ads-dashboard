@@ -15,6 +15,7 @@ import { ChartSection } from "@/components/dashboard/chart-section";
 import { AdvancedReportingSection } from "@/components/dashboard/advanced-reporting-section";
 import { DataExportButton } from "@/components/dashboard/data-export-button";
 import { getClientPackageFeatures } from "@/lib/package-features";
+import { resolveChartableMetrics } from "@/lib/campaign-chart";
 
 const periodLabelFormatter = new Intl.NumberFormat("fa-IR");
 
@@ -61,6 +62,12 @@ export default async function DashboardPage({
   // used by the data read above, so an unauthorized caller cannot see
   // or enable any feature surface.
   const features = clientId ? await getClientPackageFeatures(user, clientId) : null;
+
+  // Chart metrics are the supported comparison metrics the client is
+  // actually allowed to see — never a superset of the resolved KPI
+  // visibility. The chart surface itself is gated on the package
+  // `charts` flag below.
+  const chartMetrics = resolveChartableMetrics(visibleKpis);
 
   return (
     <div className="flex flex-col gap-6">
@@ -122,7 +129,13 @@ export default async function DashboardPage({
         />
       </section>
 
-      {features?.charts ? <ChartSection /> : null}
+      {features?.charts ? (
+        <ChartSection
+          campaigns={data?.campaigns ?? []}
+          availableMetrics={chartMetrics}
+          period={period}
+        />
+      ) : null}
       {features?.advancedReporting ? <AdvancedReportingSection /> : null}
     </div>
   );

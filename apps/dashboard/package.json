@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test test/kpi-rendering.test.tsx test/pricing-verification.test.tsx test/pricing-config.test.tsx test/client-pricing.test.tsx test/package-settings.test.tsx test/package-admin.test.tsx test/access.test.tsx test/db.test.tsx test/audit-trail.test.tsx test/auth-boundary.test.tsx test/dashboard-read.test.tsx test/dashboard-period.test.tsx test/client-admin.test.tsx test/package-features.test.tsx test/dashboard-export.test.tsx"
+    "test": "tsx --test test/kpi-rendering.test.tsx test/pricing-verification.test.tsx test/pricing-config.test.tsx test/client-pricing.test.tsx test/package-settings.test.tsx test/package-admin.test.tsx test/access.test.tsx test/db.test.tsx test/audit-trail.test.tsx test/auth-boundary.test.tsx test/dashboard-read.test.tsx test/dashboard-period.test.tsx test/client-admin.test.tsx test/package-features.test.tsx test/dashboard-export.test.tsx test/campaign-chart.test.tsx"
   },
   "dependencies": {
     "@repo/database": "workspace:*",
