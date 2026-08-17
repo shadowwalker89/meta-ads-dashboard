@@ -55,7 +55,8 @@ too fragile to scrape reliably. Do not revert to DOM scraping without discussing
 # CURRENT PROJECT STATUS
 
 Phase 1 (Collector + storage foundation): substantially complete.
-Phase 2 (real Dashboard): not started — next up.
+Phase 2 (real Dashboard): in progress — Phase 2B (reporting window UX) and
+Phase 2C (Admin panel: Client/AdAccount management) are implemented.
 
 ✅ pnpm workspace, Next.js 15 dashboard shell (RTL, Persian, Vazirmatn, dark mode)
 ✅ Mock authentication (cookie-based, 3 roles) + route protection
@@ -66,12 +67,14 @@ Phase 2 (real Dashboard): not started — next up.
    MetricsParser (fa/en digits, currency, %), CSV-export-based collection
 ✅ End-to-end pipeline verified against a real logged-in Meta session and a real
    (draft/zero-delivery) campaign — correctly produced "no data" without crashing
+✅ Real Dashboard: client-facing KPI dashboard (real metrics, pricing, KPI
+   config, reporting-period selector) + Admin panel (Packages, Pricing, KPI
+   config, Clients, AdAccounts) — 136 dashboard tests
 🔲 Full pipeline NOT yet verified against a real campaign with non-zero metrics
    (blocked on the project owner having a spending campaign available)
-🔲 Real Dashboard UI (Admin panel, Client panel, charts) — not started
 🔲 Supabase Auth (replacing mock auth) — not started
-🔲 Admin UI for managing Clients/Packages/AdAccounts — not started (only a
-   one-off script exists: `packages/database/src/create-test-ad-account.ts`)
+🔲 Charts / data-export / advanced-reporting feature surfaces (Package feature
+   flags exist and are stored, but are not yet consumed by the UI)
 🔲 Scheduling/cron for periodic Collector runs — not started (manual `pnpm start` only)
 🔲 WhatsApp chatbot feature — explicitly deferred to a separate future phase;
    do not mix into current Phase 1/2 work without a dedicated Domain Model + Sprint plan
@@ -102,10 +105,12 @@ Phase 1 — Collector + storage foundation
   Status: substantially complete (see CURRENT PROJECT STATUS).
 
 Phase 2 — Real Dashboard
-  Supabase Auth, Realtime, RBAC, Admin panel (manage clients/packages/ad accounts),
-  Client panel (charts/KPIs), UI template decision (owner leans TailAdmin, wants
-  options presented before deciding).
-  Status: not started. This is the current/next phase.
+  Admin panel (manage clients/packages/pricing/ad accounts — built), Client
+  panel (KPIs, pricing, reporting-period selector — built), Supabase Auth
+  (not started), charts/data-export/advanced-reporting feature surfaces
+  (feature flags exist, not yet consumed). UI style follows the existing
+  shadcn/ui + Radix + TailAdmin-inspired shell.
+  Status: in progress — 2B (reporting window) and 2C (Client/AdAccount admin) done.
 
 Phase 3 — Meta Marketing API
   Replace Playwright collector with official Meta Marketing API, same
@@ -214,11 +219,12 @@ multiple good solutions, explain trade-offs and recommend one.
 
 # NEXT TASK
 
-Phase 2 kickoff:
-1. Present UI template options (owner leans TailAdmin) and get a decision.
-2. Decide whether Supabase Auth replaces mock-auth before or alongside the first
-   real Dashboard UI work (not yet decided — ask the owner).
-3. Begin Admin panel: Client/Package/AdAccount management (currently only possible
-   via one-off scripts / direct SQL).
+Phase 2 continues:
+1. Wire the stored Package feature flags (charts, dataExport, advancedReporting)
+   into the client dashboard UI (currently configurable but not consumed).
+2. Optional next: scheduling/cron for periodic Collector runs (manual
+   `pnpm start` today).
+3. Supabase Auth replaces mock-auth only at the deployment phase — the auth
+   boundary (`lib/auth/`) already isolates providers; keep mock for dev.
 
 Wait for confirmation before starting any of the above.

@@ -19,7 +19,8 @@ and `docs/domain-model.md` for the data model.
 
 ```
 apps/
-  dashboard/     Next.js app (currently mock-auth; real Dashboard UI not built yet)
+  dashboard/     Next.js app (mock auth in dev; real Dashboard UI built — KPI
+                 reporting, pricing, admin panel for packages/pricing/KPI/Clients/AdAccounts)
   collector/     Playwright-based data collector for Meta Ads Manager
 packages/
   shared/        Domain types + storage-agnostic Repository interfaces

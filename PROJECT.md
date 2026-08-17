@@ -1,6 +1,6 @@
 # PROJECT.md — Status Tracking
 
-Last updated: 2026-08-17 (Phase 2B Step 1 reporting-window evidence)
+Last updated: 2026-08-17 (Phase 2C Admin panel: Client/AdAccount management)
 
 For working rules and architectural constraints, see `CLAUDE.md`.
 For the data model, see `docs/domain-model.md`.
@@ -44,7 +44,7 @@ diagnostic script remains (gitignored dev tool).
 
 - Monorepo: `apps/dashboard`, `apps/collector`, `packages/shared`, `packages/database`
 - Dashboard shell: Next.js 15 App Router, RTL/Persian, dark mode, shadcn/ui (Nova
-  preset, Radix), sidebar + topbar + mobile nav — all cosmetic/layout only
+  preset, Radix), sidebar + topbar + mobile nav
 - Mock authentication: cookie-based, 3 roles (`super_admin`/`admin`/`client`),
   route-protecting middleware — **temporary**, will be replaced by Supabase Auth
 - Domain Model: 10 entities (`docs/domain-model.md`) — User, Client, Package,
@@ -52,9 +52,9 @@ diagnostic script remains (gitignored dev tool).
   AuditLog, CollectorJob
 - Repository interfaces (`packages/shared/src/domain/repositories/`) — one per
   entity, storage-agnostic, cursor-based pagination
-- SQLite implementation (`packages/database`) — migrations (`001_init.sql`,
-  `002_add_link_clicks.sql`), seed script, one-off `create-test-ad-account.ts`,
-  smoke + repository tests, all passing
+- SQLite implementation (`packages/database`) — migrations, seed script, one-off
+  `create-test-ad-account.ts` + `create-test-data.ts`, smoke + repository tests,
+  all passing
 - Real Collector (`apps/collector`):
   - `BrowserSessionManager` — Playwright `launchPersistentContext`, one context
     per run, manual one-time login via `bootstrap-session.ts`
@@ -75,13 +75,20 @@ diagnostic script remains (gitignored dev tool).
     `CollectorJob.status = "success"`; now throws so it's correctly `"failed"`
   - Fixed real bug: Ad Account URL was built with an invented REST-style path;
     now correctly uses Meta's real `?act=<metaAdAccountId>` format
+- Real Dashboard (`apps/dashboard`):
+  - Client-facing KPI dashboard with real metrics, pricing (per-client rules),
+    KPI config (per-client visible set), and a reporting-period selector (2B)
+  - Admin panel: Packages + assignment (super_admin), Pricing admin + config
+    (super_admin), KPI config (admin/super_admin), Clients + AdAccounts
+    management (admin/super_admin, tenant-scoped) — Phase 2C
+  - Audit trail for every financially/security-relevant admin action
+  - 136 dashboard tests, all passing
 
 ## What's NOT implemented
 
-- Real Dashboard UI: no charts, no Admin panel (client/package/ad-account
-  management), no Client panel — all still placeholder pages
+- Charts / data-export / advanced-reporting feature surfaces — Package feature
+  flags exist and are stored but are not yet consumed by the dashboard UI
 - Supabase Auth/Realtime/RBAC
-- Any way to create/manage AdAccounts except the one-off script or raw SQL
 - Cron/scheduling for periodic Collector runs (currently manual `pnpm start`)
 - WhatsApp chatbot (fully separate future phase)
 - Full-pipeline verification with a real, non-zero metrics row (see Known Issues)
@@ -104,20 +111,19 @@ diagnostic script remains (gitignored dev tool).
    in `scrapeCampaignTable()` — verbose, and could print real campaign data to
    logs. Remove once real-data testing (#1) is confirmed working.
 4. **`AdAccount.metaAdAccountId`** for the one existing test AdAccount was set via
-   a direct `sqlite3 UPDATE`, not through application code — no admin UI or script
-   exists yet for this.
+   a direct `sqlite3 UPDATE` before the admin UI existed. It can now be managed
+   from the Admin panel (`/dashboard/admin/clients`) — the historical row just
+   never went through application code.
 
 ## Pending work (priority order)
 
-1. Decide UI template for Dashboard (owner leans TailAdmin; present alternatives)
-2. Build real Dashboard: Admin panel (Client/Package/AdAccount management) +
-   Client panel (charts/KPIs) — decide Supabase Auth timing relative to this
-3. Validate full Collector pipeline against a real spending campaign; remove
+1. Wire stored Package feature flags (charts, dataExport, advancedReporting)
+   into the client dashboard UI (currently configurable but not consumed)
+2. Validate full Collector pipeline against a real spending campaign; remove
    temporary debug logging afterward
-4. Fix/verify the "All ads" tab-click selector with real DOM evidence
-5. Build an admin-facing way to create/manage AdAccounts
-6. Add scheduling (cron) for periodic automated Collector runs
-7. (Separate phase) WhatsApp Business Cloud API chatbot — own Domain Model + plan
+3. Fix/verify the "All ads" tab-click selector with real DOM evidence
+4. Add scheduling (cron) for periodic automated Collector runs
+5. (Separate phase) WhatsApp Business Cloud API chatbot — own Domain Model + plan
 
 ## Verification commands
 
