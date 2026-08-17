@@ -78,7 +78,7 @@ export default async function DashboardPage({
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">بازه‌ی گزارش‌گیری</span>
           <div className="flex items-center gap-2">
-            {features?.dataExport ? <DataExportButton /> : null}
+            {features?.dataExport ? <DataExportButton period={period} /> : null}
             <PeriodSelector current={period} />
           </div>
         </div>

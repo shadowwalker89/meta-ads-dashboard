@@ -45,6 +45,7 @@ export const AUDIT_ACTIONS = {
   AD_ACCOUNT_CREATED: "ad_account.created",
   AD_ACCOUNT_SOURCE_UPDATED: "ad_account.source_updated",
   AD_ACCOUNT_STATUS_UPDATED: "ad_account.status_updated",
+  DATA_EXPORT_CREATED: "data_export.created",
 } as const;
 
 export const AUDIT_TARGET_TYPES = {
@@ -247,6 +248,26 @@ export class AuditService {
         clientId: adAccount.clientId,
         name: adAccount.name,
         previousStatus,
+      }
+    );
+  }
+
+  async recordDataExport(
+    actor: AuditActor,
+    clientId: string,
+    metadata: {
+      rangeDays: number;
+      rowCount: number;
+    }
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.DATA_EXPORT_CREATED,
+      AUDIT_TARGET_TYPES.CLIENT,
+      clientId,
+      {
+        rangeDays: metadata.rangeDays,
+        rowCount: metadata.rowCount,
       }
     );
   }

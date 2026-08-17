@@ -3,16 +3,49 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { ReportingPeriod } from "@/lib/dashboard-period";
+
+type ExportStatus = "idle" | "loading" | "success" | "error";
 
 /**
  * Data-export entry point, gated behind the package `dataExport`
- * feature flag by the dashboard page. The actual export subsystem does
- * not exist yet — this component is only the correct feature-visibility
- * boundary. It never fabricates an export; clicking it shows an honest
- * "coming soon" notice instead of pretending to produce a file.
+ * feature flag by the dashboard page. Downloads the currently displayed
+ * client dashboard data (same reporting range, same KPI visibility, same
+ * customer-facing values) as CSV from the server route. The server
+ * re-verifies authorization and the feature flag on every request, so
+ * this button is only a convenience entry point — never an authority.
  */
-export function DataExportButton() {
-  const [noticeShown, setNoticeShown] = useState(false);
+export function DataExportButton({ period }: { period: ReportingPeriod }) {
+  const [status, setStatus] = useState<ExportStatus>("idle");
+
+  const handleExport = async () => {
+    setStatus("loading");
+    try {
+      const response = await fetch(`/api/dashboard/export?range=${period}`);
+      if (!response.ok) {
+        setStatus("error");
+        return;
+      }
+
+      const blob = await response.blob();
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const match = /filename="([^"]+)"/.exec(disposition);
+      const filename = match?.[1] ?? `dashboard-export-${period}d.csv`;
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+
+      setStatus("success");
+    } catch {
+      setStatus("error");
+    }
+  };
 
   return (
     <div className="flex flex-col items-start gap-1.5">
@@ -20,14 +53,20 @@ export function DataExportButton() {
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => setNoticeShown(true)}
+        onClick={handleExport}
+        disabled={status === "loading"}
       >
         <Download data-slot="icon" aria-hidden="true" />
-        خروجی داده
+        {status === "loading" ? "در حال تهیه‌ی خروجی…" : "خروجی داده"}
       </Button>
-      {noticeShown ? (
-        <p className="text-xs text-muted-foreground">
-          خروجی داده به‌زودی در دسترس قرار می‌گیرد.
+      {status === "success" ? (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+          خروجی با موفقیت دانلود شد.
+        </p>
+      ) : null}
+      {status === "error" ? (
+        <p className="text-xs text-destructive">
+          تهیه‌ی خروجی ناموفق بود؛ دوباره تلاش کنید.
         </p>
       ) : null}
     </div>

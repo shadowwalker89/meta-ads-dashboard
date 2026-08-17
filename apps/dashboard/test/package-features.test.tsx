@@ -225,9 +225,9 @@ test("package features: chart and advanced-reporting surfaces render their secti
 });
 
 test("package features: data-export button renders its entry point", () => {
-  const html = renderToStaticMarkup(<DataExportButton />);
+  const html = renderToStaticMarkup(<DataExportButton period={30} />);
   assert.ok(html.includes("خروجی داده"));
-  // The "coming soon" notice only appears after interaction — the static
-  // render must NOT show it, so an enabled entry point never fakes an export.
-  assert.ok(!html.includes("به‌زودی در دسترس قرار می‌گیرد"));
+  // The download/loading states only appear after interaction — the
+  // static render must NOT show a busy state.
+  assert.ok(!html.includes("در حال تهیه‌ی خروجی"));
 });
