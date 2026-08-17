@@ -4,4 +4,5 @@ export * from "./domain/pricing.js";
 export * from "./domain/package.js";
 export * from "./domain/package-limits.js";
 export * from "./domain/collection-due.js";
+export * from "./domain/reporting-date.js";
 export * from "./domain/repositories/index.js";

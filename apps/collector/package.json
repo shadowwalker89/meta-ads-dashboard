@@ -9,7 +9,7 @@
     "bootstrap-session": "tsx src/bootstrap-session.ts",
     "debug-session": "tsx src/debug-session-check.ts",
     "debug-export": "tsx src/debug-export.ts",
-    "test": "tsx --test test/metrics-parser.test.ts test/collection-scheduler.test.ts"
+    "test": "tsx --test test/metrics-parser.test.ts test/collection-scheduler.test.ts test/reporting-window.test.ts"
   },
   "dependencies": {
     "playwright": "^1.49.1",

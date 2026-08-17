@@ -116,6 +116,14 @@ export interface InsightSnapshot {
   id: string;
   campaignId: string;
   capturedAt: Date;
+  /**
+   * The reporting window Meta supplied for this snapshot's cumulative
+   * values, as calendar dates (UTC midnight). Null when the export did
+   * not provide bounds — never inferred from `capturedAt`, and
+   * `capturedAt` is never a substitute for either boundary.
+   */
+  reportingFrom: Date | null;
+  reportingTo: Date | null;
   impressions: number;
   clicks: number;
   /**
