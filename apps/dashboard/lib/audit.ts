@@ -1,6 +1,8 @@
 import { SqliteAuditLogRepository } from "@repo/database";
 import type {
+  AdAccount,
   AuditLogRepository,
+  Client,
   DashboardKpiKey,
   Package,
   PricingRule,
@@ -38,11 +40,17 @@ export const AUDIT_ACTIONS = {
   PACKAGE_UPDATED: "package.updated",
   PRICING_RULE_CREATED: "pricing_rule.created",
   KPI_CONFIG_CHANGED: "kpi_config.changed",
+  CLIENT_CREATED: "client.created",
+  CLIENT_DEACTIVATED: "client.deactivated",
+  AD_ACCOUNT_CREATED: "ad_account.created",
+  AD_ACCOUNT_SOURCE_UPDATED: "ad_account.source_updated",
+  AD_ACCOUNT_STATUS_UPDATED: "ad_account.status_updated",
 } as const;
 
 export const AUDIT_TARGET_TYPES = {
   CLIENT: "client",
   PACKAGE: "package",
+  AD_ACCOUNT: "ad_account",
 } as const;
 
 /** The acting user. Only identity fields are recorded — never secrets. */
@@ -151,6 +159,94 @@ export class AuditService {
       {
         visibleMetrics,
         previousVisibleMetrics,
+      }
+    );
+  }
+
+  async recordClientCreated(
+    actor: AuditActor,
+    client: Pick<Client, "id" | "name" | "packageId">
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.CLIENT_CREATED,
+      AUDIT_TARGET_TYPES.CLIENT,
+      client.id,
+      {
+        name: client.name,
+        packageId: client.packageId,
+      }
+    );
+  }
+
+  async recordClientDeactivated(
+    actor: AuditActor,
+    client: Pick<Client, "id" | "name">
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.CLIENT_DEACTIVATED,
+      AUDIT_TARGET_TYPES.CLIENT,
+      client.id,
+      {
+        name: client.name,
+      }
+    );
+  }
+
+  async recordAdAccountCreated(
+    actor: AuditActor,
+    adAccount: Pick<AdAccount, "id" | "clientId" | "name" | "source">
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.AD_ACCOUNT_CREATED,
+      AUDIT_TARGET_TYPES.AD_ACCOUNT,
+      adAccount.id,
+      {
+        clientId: adAccount.clientId,
+        name: adAccount.name,
+        source: adAccount.source,
+      }
+    );
+  }
+
+  async recordAdAccountSourceUpdated(
+    actor: AuditActor,
+    adAccount: Pick<AdAccount, "id" | "clientId" | "name">,
+    previous: {
+      source: AdAccount["source"];
+      metaAdAccountId: string | null;
+    }
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.AD_ACCOUNT_SOURCE_UPDATED,
+      AUDIT_TARGET_TYPES.AD_ACCOUNT,
+      adAccount.id,
+      {
+        clientId: adAccount.clientId,
+        name: adAccount.name,
+        previousSource: previous.source,
+        previousMetaAdAccountId: previous.metaAdAccountId,
+      }
+    );
+  }
+
+  async recordAdAccountStatusUpdated(
+    actor: AuditActor,
+    adAccount: Pick<AdAccount, "id" | "clientId" | "name">,
+    previousStatus: AdAccount["status"]
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.AD_ACCOUNT_STATUS_UPDATED,
+      AUDIT_TARGET_TYPES.AD_ACCOUNT,
+      adAccount.id,
+      {
+        clientId: adAccount.clientId,
+        name: adAccount.name,
+        previousStatus,
       }
     );
   }
