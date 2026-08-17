@@ -45,6 +45,9 @@ class StubCollectorProvider implements CollectorProvider {
 function rawRow(scrapedLabel: string): RawCampaignMetrics {
   return {
     scrapedLabel,
+    metaCampaignId: null,
+    reportingFrom: null,
+    reportingTo: null,
     impressions: "1,000",
     clicks: "200",
     linkClicks: "200",
@@ -449,6 +452,16 @@ test("scheduler: collected raw InsightSnapshot values are preserved", async () =
   assert.equal(snapshot.reach, 800);
   assert.equal(snapshot.costPerResult, 5);
   assert.equal(snapshot.rawPayload?.scrapedLabel, "Summer Sale");
+
+  // Boundary fields are carried through rawPayload (groundwork for a
+  // future migration) but are NOT InsightSnapshot columns — the append
+  // object never sees them.
+  assert.equal(snapshot.rawPayload?.reportingFrom, null);
+  assert.equal(snapshot.rawPayload?.reportingTo, null);
+  assert.equal(snapshot.rawPayload?.metaCampaignId, null);
+  assert.ok(!("reportingFrom" in snapshot));
+  assert.ok(!("reportingTo" in snapshot));
+  assert.ok(!("metaCampaignId" in snapshot));
 
   h.db.close();
 });

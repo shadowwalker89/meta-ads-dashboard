@@ -1,6 +1,6 @@
 const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 const ARABIC_INDIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
-const EMPTY_TOKENS = new Set(["", "-", "—", "–", "n/a"]);
+export const EMPTY_TOKENS = new Set(["", "-", "—", "–", "n/a"]);
 
 function normalizeDigits(input: string): string {
   return input.replace(/[۰-۹٠-٩]/g, (ch) => {

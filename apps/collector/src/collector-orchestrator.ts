@@ -70,10 +70,19 @@ export class CollectorOrchestrator {
         const campaign = await this.discoverCampaign(adAccount, raw.scrapedLabel);
 
         const parsed = this.deps.metricsParser.parse(raw);
+        // metaCampaignId / reportingFrom / reportingTo are parser-boundary
+        // groundwork only — carried through RawCampaignMetrics into
+        // rawPayload for a future migration, but NOT yet InsightSnapshot
+        // columns (migration 008 deferred: reporting date format still
+        // unverified). Drop them here so append never sees them.
+        const { metaCampaignId, reportingFrom, reportingTo, ...metrics } = parsed;
+        void metaCampaignId;
+        void reportingFrom;
+        void reportingTo;
         await this.deps.insightSnapshotRepository.append({
           campaignId: campaign.id,
           capturedAt: new Date(),
-          ...parsed,
+          ...metrics,
         });
         console.log(`[Collector] snapshot saved: campaignId=${campaign.id}`);
       }
