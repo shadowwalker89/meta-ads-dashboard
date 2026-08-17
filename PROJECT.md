@@ -1,6 +1,6 @@
 # PROJECT.md — Status Tracking
 
-Last updated: 2026-08-09 (end of Sprint 5 / Collector real-data work)
+Last updated: 2026-08-17 (Phase 2B Step 1 reporting-window evidence)
 
 For working rules and architectural constraints, see `CLAUDE.md`.
 For the data model, see `docs/domain-model.md`.
@@ -13,6 +13,32 @@ For the data model, see `docs/domain-model.md`.
 | 2 — Real Dashboard (Supabase Auth, Admin/Client panels) | **Not started — current phase** |
 | 3 — Meta Marketing API (replaces Playwright) | Not started |
 | 4 — WhatsApp chatbot (separate future phase) | Deferred, not started, no Domain Model yet |
+
+## Phase 2B Step 1 — reporting-window evidence (audit conclusion)
+
+Live evidence gathered via the existing persistent Playwright session and the
+existing verified CSV export mechanism (test account, Draft campaign only):
+
+1. **CSV reporting-window columns are CONFIRMED to exist** — a real Meta CSV
+   export was successfully produced through the existing session using the
+   existing verified export selector.
+2. **Exact header names are CONFIRMED**: `Reporting starts` and `Reporting ends`.
+3. **Values are confirmed to come directly from Meta's CSV stream** — read
+   verbatim from the export with no transformation.
+4. **Actual date values and date format remain UNVERIFIED** — the test account has
+   no running campaign / no payment method, so the export correctly returns
+   "No data available." and no real row could be observed. This is expected, not a
+   collector/session failure, and must not be diagnosed as auth/filter trouble.
+5. **Migration 008 is technically justified** as the next architectural step
+   (columns exist with stable names), but implementation is **postponed** until at
+   least one real campaign row can be observed OR the exact date serialization is
+   established safely.
+6. **Do not fabricate or infer the date format** — no code writes/reads these
+   columns until point 4 is resolved.
+
+Artifacts: temporary observational script `apps/collector/src/debug-export-window.ts`
+and its `debug-export-window` npm entry in `apps/collector/package.json` (cleanup
+pending owner decision — see Pending work).
 
 ## What's implemented
 
