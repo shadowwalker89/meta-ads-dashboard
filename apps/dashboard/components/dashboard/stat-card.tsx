@@ -24,6 +24,8 @@ export interface StatCardProps extends React.ComponentProps<"div"> {
   description?: string
   /** روند مثبت/منفی نسبت به دوره قبل */
   trend?: StatCardTrend
+  /** مقایسه با دوره قبل در دسترس/قابل اعتماد نیست → «—» به‌جای روند */
+  trendNa?: boolean
   /** آیکون اختیاری (برای استفاده آینده) */
   icon?: React.ReactNode
 }
@@ -38,6 +40,7 @@ function StatCard({
   value,
   description,
   trend,
+  trendNa,
   icon,
   className,
   ...props
@@ -84,6 +87,14 @@ function StatCard({
               {trend.direction === "up" ? "▲" : "▼"}
             </span>
             {trend.value}%
+          </span>
+        ) : trendNa ? (
+          <span
+            data-slot="stat-card-trend"
+            data-direction="na"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            —
           </span>
         ) : null}
       </div>

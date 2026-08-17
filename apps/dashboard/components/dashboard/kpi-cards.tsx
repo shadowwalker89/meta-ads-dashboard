@@ -9,14 +9,21 @@ import { KpiCard } from "@/components/dashboard/kpi-card";
 export function KpiCards({
   visibleKpis,
   values,
+  changes,
 }: {
   visibleKpis: DashboardKpiKey[];
   values: Record<DashboardKpiKey, number>;
+  changes?: Record<DashboardKpiKey, number | null>;
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {visibleKpis.map((kpiKey) => (
-        <KpiCard key={kpiKey} kpiKey={kpiKey} value={values[kpiKey]} />
+        <KpiCard
+          key={kpiKey}
+          kpiKey={kpiKey}
+          value={values[kpiKey]}
+          change={changes?.[kpiKey]}
+        />
       ))}
     </div>
   );

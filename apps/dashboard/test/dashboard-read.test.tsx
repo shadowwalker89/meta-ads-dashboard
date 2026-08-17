@@ -18,6 +18,7 @@ import {
   type DashboardRange,
 } from "@/lib/client-dashboard-data";
 import { AccessError } from "@/lib/access";
+import { previousPeriod, reportingRangeForDays } from "@/lib/dashboard-period";
 
 type Db = ReturnType<typeof openDatabase>;
 
@@ -320,4 +321,160 @@ test("dashboard read: defaultDashboardRange spans the trailing 30 days", () => {
     range.from.toISOString(),
     new Date("2026-07-16T12:00:00.000Z").toISOString()
   );
+});
+
+test("dashboard read: period exposes the current and previous windows", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const client = await createClient(db, pkg.id, "Client One");
+  const account = await createAdAccount(db, client.id, "Account A");
+  const campaign = await createCampaign(db, account.id, "Campaign A");
+  await new SqliteInsightSnapshotRepository(db).append(
+    snapshot(campaign.id, new Date("2026-01-15T00:00:00.000Z"))
+  );
+
+  const user = makeUser({ id: "cu", clientId: client.id });
+  const data = await getClientDashboardData(user, client.id, db, RANGE);
+
+  assert.deepEqual(data.period.range, RANGE);
+  assert.deepEqual(data.period.previousRange, previousPeriod(RANGE));
+
+  db.close();
+});
+
+test("dashboard read: previous-period comparison computes the correct percentage change", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const client = await createClient(db, pkg.id, "Client One");
+  const account = await createAdAccount(db, client.id, "Account A");
+  const campaign = await createCampaign(db, account.id, "Campaign A");
+
+  const snapshots = new SqliteInsightSnapshotRepository(db);
+  // Previous window: latest snapshot captured inside [Dec30 23:59:59.999, Jan9 23:59:59.999].
+  await snapshots.append(snapshot(campaign.id, new Date("2026-01-05T00:00:00.000Z"), { spend: 100, impressions: 1000, clicks: 100, reach: 900, results: 20 }));
+  // Current window: latest snapshot captured inside [Jan10, Jan20].
+  await snapshots.append(snapshot(campaign.id, new Date("2026-01-15T00:00:00.000Z"), { spend: 150, impressions: 2000, clicks: 150, reach: 1600, results: 30 }));
+
+  const user = makeUser({ id: "cu", clientId: client.id });
+  const data = await getClientDashboardData(user, client.id, db, RANGE);
+
+  assert.equal(data.period.change.spend, 50); // (150-100)/100*100
+  assert.equal(data.period.change.impressions, 100); // (2000-1000)/1000*100
+  assert.ok(Math.abs(data.period.change.reach! - (700 / 900) * 100) < 1e-9);
+  // CTR is a rate and can legitimately fall: 7.5 vs 10 → -25%.
+  assert.ok(Math.abs(data.period.change.ctr! - (-25)) < 1e-9);
+
+  db.close();
+});
+
+test("dashboard read: a count/spend decrease between readings is flagged as untrustworthy (rolling-window guard)", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const client = await createClient(db, pkg.id, "Client One");
+  const account = await createAdAccount(db, client.id, "Account A");
+  const campaign = await createCampaign(db, account.id, "Campaign A");
+
+  const snapshots = new SqliteInsightSnapshotRepository(db);
+  await snapshots.append(snapshot(campaign.id, new Date("2026-01-05T00:00:00.000Z"), { spend: 200, impressions: 2000, clicks: 100, reach: 1500 }));
+  // Current readings are LOWER on spend/impressions/reach — under
+  // cumulative semantics this can only be a window-roll artifact.
+  await snapshots.append(snapshot(campaign.id, new Date("2026-01-15T00:00:00.000Z"), { spend: 100, impressions: 1000, clicks: 100, reach: 800 }));
+
+  const user = makeUser({ id: "cu", clientId: client.id });
+  const data = await getClientDashboardData(user, client.id, db, RANGE);
+
+  assert.equal(data.period.change.spend, null);
+  assert.equal(data.period.change.impressions, null);
+  assert.equal(data.period.change.reach, null);
+  // clicks is unchanged → a valid 0% change, not null.
+  assert.equal(data.period.change.clicks, 0);
+  // A rate metric that INCREASED despite falling counts is still valid.
+  assert.ok(Math.abs(data.period.change.ctr! - 100) < 1e-9); // (10 - 5) / 5 * 100
+
+  db.close();
+});
+
+test("dashboard read: missing previous reading yields null change (zero denominator)", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const client = await createClient(db, pkg.id, "Client One");
+  const account = await createAdAccount(db, client.id, "Account A");
+  const campaign = await createCampaign(db, account.id, "Campaign A");
+
+  // Only a current-period snapshot exists — no previous reading at all.
+  await new SqliteInsightSnapshotRepository(db).append(
+    snapshot(campaign.id, new Date("2026-01-15T00:00:00.000Z"), { spend: 50, impressions: 1000, results: 20 })
+  );
+
+  const user = makeUser({ id: "cu", clientId: client.id });
+  const data = await getClientDashboardData(user, client.id, db, RANGE);
+
+  assert.equal(data.period.change.spend, null);
+  assert.equal(data.period.change.impressions, null);
+  assert.equal(data.period.change.costPerResult, null); // previous results = 0
+
+  db.close();
+});
+
+test("dashboard read: data only in the previous window yields an empty current period", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const client = await createClient(db, pkg.id, "Client One");
+  const account = await createAdAccount(db, client.id, "Account A");
+  const campaign = await createCampaign(db, account.id, "Campaign A");
+
+  await new SqliteInsightSnapshotRepository(db).append(
+    snapshot(campaign.id, new Date("2026-01-05T00:00:00.000Z"), { spend: 50 })
+  );
+
+  const user = makeUser({ id: "cu", clientId: client.id });
+  const data = await getClientDashboardData(user, client.id, db, RANGE);
+
+  assert.equal(data.snapshotCount, 0);
+  assert.equal(data.values.spend, 0);
+  assert.equal(data.period.change.spend, null);
+
+  db.close();
+});
+
+test("dashboard read: the 7/30/90 selection filters which captured_at windows contribute", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const client = await createClient(db, pkg.id, "Client One");
+  const account = await createAdAccount(db, client.id, "Account A");
+  const campaignA = await createCampaign(db, account.id, "Campaign A");
+  const campaignB = await createCampaign(db, account.id, "Campaign B");
+
+  const snapshots = new SqliteInsightSnapshotRepository(db);
+  // Campaign A was last collected ~2.5 months ago: inside 90 days, outside 7.
+  await snapshots.append(
+    snapshot(campaignA.id, new Date("2026-06-01T00:00:00.000Z"), { impressions: 500 })
+  );
+  // Campaign B was collected within the last week: inside both windows.
+  await snapshots.append(
+    snapshot(campaignB.id, new Date("2026-08-10T00:00:00.000Z"), { impressions: 200 })
+  );
+
+  const user = makeUser({ id: "cu", clientId: client.id });
+  const now = new Date("2026-08-15T12:00:00.000Z");
+
+  const data7 = await getClientDashboardData(
+    user,
+    client.id,
+    db,
+    reportingRangeForDays(7, now)
+  );
+  assert.equal(data7.snapshotCount, 1);
+  assert.equal(data7.values.impressions, 200);
+
+  const data90 = await getClientDashboardData(
+    user,
+    client.id,
+    db,
+    reportingRangeForDays(90, now)
+  );
+  assert.equal(data90.snapshotCount, 2);
+  assert.equal(data90.values.impressions, 700);
+
+  db.close();
 });

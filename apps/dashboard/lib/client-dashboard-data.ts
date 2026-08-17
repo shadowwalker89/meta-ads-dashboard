@@ -15,12 +15,31 @@ import {
 import { mergePricedValues } from "@/lib/client-pricing-view";
 import { getClientPricedKpis } from "@/lib/pricing";
 import { getDatabase } from "@/lib/db";
+import {
+  percentageChange,
+  previousPeriod,
+  reportingRangeForDays,
+  type DashboardRange,
+} from "@/lib/dashboard-period";
 
 type Db = ReturnType<typeof getDatabase>;
 
-export interface DashboardRange {
-  from: Date;
-  to: Date;
+export type { DashboardRange } from "@/lib/dashboard-period";
+
+export interface ClientDashboardPeriod {
+  /** The selected reporting window (by snapshot captured_at). */
+  range: DashboardRange;
+  /** The equal-length period immediately preceding `range`. */
+  previousRange: DashboardRange;
+  /**
+   * Percentage change of the current period vs the previous period, per
+   * KPI key. `null` means the comparison is unavailable or untrustworthy
+   * (no previous reading, zero denominator, or a rolling-window artifact
+   * where a cumulative count/spend metric decreased between readings).
+   * Rates (CTR/CPC/CPM/...) compare normally — they may legitimately
+   * go down. Never NaN or Infinity.
+   */
+  change: Record<DashboardKpiKey, number | null>;
 }
 
 export interface ClientDashboardData {
@@ -39,69 +58,44 @@ export interface ClientDashboardData {
    */
   snapshotCount: number;
   campaigns: ClientCampaignKpi[];
+  period: ClientDashboardPeriod;
 }
 
 /**
  * Default reporting window: the trailing 30 days, matching the Meta Ads
- * Manager campaign table default that the collector reads from.
+ * Manager campaign table default that the collector reads from. The
+ * dashboard page always passes an explicit 7/30/90 range; this is only
+ * the safe fallback for other callers.
  */
 export function defaultDashboardRange(now: Date = new Date()): DashboardRange {
-  return {
-    from: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-    to: now,
-  };
+  return reportingRangeForDays(30, now);
+}
+
+interface CampaignMeta {
+  name: string;
+  adAccountId: string;
+  adAccountName: string;
+}
+
+interface AggregatedRead {
+  totals: Record<DashboardKpiKey, number>;
+  campaigns: ClientCampaignKpi[];
+  snapshotCount: number;
 }
 
 /**
- * Server-only. The single authorized read path for the client dashboard.
- *
- * Every clientId is verified through the central access boundary
- * (requireClientAccess) before any data is read — a clientId arriving
- * from request input is never trusted here.
- *
- * Aggregation follows the documented snapshot semantics: snapshots are
+ * Latest-per-campaign aggregation for one window. Snapshots are
  * cumulative period totals per campaign, so each campaign contributes
- * exactly its latest snapshot within the range (older snapshots of the
- * same campaign are never summed). The repository returns one row per
- * campaign and this service sums the raw metrics across campaigns, then
- * derives rates from those totals.
- *
- * The pricing layer is applied exactly as the existing
- * getClientPricingView does (getClientPricedKpis + mergePricedValues)
- * at the end of the reporting window, so cost metrics show their
- * customer value and raw cost is never exposed.
+ * exactly its latest snapshot within the range — multiple snapshots of
+ * the same campaign are never summed. Shared by the current and the
+ * previous period so the aggregation rule lives in exactly one place.
  */
-export async function getClientDashboardData(
-  user: Pick<User, "role" | "id" | "clientId">,
-  clientId: string,
-  db: Db = getDatabase(),
-  range: DashboardRange = defaultDashboardRange()
-): Promise<ClientDashboardData> {
-  await requireClientAccess(user, clientId, db);
-
-  const adAccountRepo = new SqliteAdAccountRepository(db);
-  const campaignRepo = new SqliteCampaignRepository(db);
-  const snapshotRepo = new SqliteInsightSnapshotRepository(db);
-
-  const adAccounts = await adAccountRepo.findByClient(clientId);
-
-  const campaignIds: string[] = [];
-  const campaignMeta = new Map<
-    string,
-    { name: string; adAccountId: string; adAccountName: string }
-  >();
-  for (const adAccount of adAccounts) {
-    const campaigns = await campaignRepo.findByAdAccount(adAccount.id);
-    for (const campaign of campaigns) {
-      campaignMeta.set(campaign.id, {
-        name: campaign.name,
-        adAccountId: adAccount.id,
-        adAccountName: adAccount.name,
-      });
-      campaignIds.push(campaign.id);
-    }
-  }
-
+async function aggregateForRange(
+  snapshotRepo: SqliteInsightSnapshotRepository,
+  campaignMeta: Map<string, CampaignMeta>,
+  campaignIds: string[],
+  range: DashboardRange
+): Promise<AggregatedRead> {
   const snapshots = await snapshotRepo.findLatestForCampaigns(
     campaignIds,
     range.from,
@@ -129,39 +123,131 @@ export async function getClientDashboardData(
     });
   }
 
-  const rawValues = deriveClientMetrics(totals);
+  return { totals, campaigns, snapshotCount: snapshots.length };
+}
 
-  // Pricing is applied at the end of the reporting window so the
-  // effective rules align with the data being shown. Behavior is the
-  // same as getClientPricingView — nothing is reimplemented here.
-  const pricedTotals = await getClientPricedKpis(
-    clientId,
-    rawValues,
-    range.to,
-    undefined,
-    db
+/**
+ * Applies the pricing layer to a raw KPI map, reusing the exact same
+ * logic as getClientPricingView (getClientPricedKpis + mergePricedValues).
+ * Pricing is applied at `at` so the effective rules align with the
+ * reporting window being shown.
+ */
+async function priceValues(
+  clientId: string,
+  rawValues: Record<DashboardKpiKey, number>,
+  at: Date,
+  db: Db
+): Promise<Record<DashboardKpiKey, number>> {
+  const priced = await getClientPricedKpis(clientId, rawValues, at, undefined, db);
+  return mergePricedValues(rawValues, priced.byMetric);
+}
+
+/**
+ * Server-only. The single authorized read path for the client dashboard.
+ *
+ * Every clientId is verified through the central access boundary
+ * (requireClientAccess) before any data is read — a clientId arriving
+ * from request input is never trusted here.
+ *
+ * Aggregation follows the documented snapshot semantics: snapshots are
+ * cumulative period totals per campaign, so each campaign contributes
+ * exactly its latest snapshot within the range. The current period and
+ * the immediately preceding equal-length period are aggregated
+ * independently with the same rule, then compared.
+ *
+ * The previous-period comparison is deliberately conservative:
+ *   - count/spend metrics (spend, impressions, clicks, linkClicks,
+ *     reach, ...) are expected to be monotonic under cumulative
+ *     semantics. If the current reading is LOWER than the previous one,
+ *     the cumulative basis changed (Meta's rolling window rolled), so
+ *     the comparison is untrustworthy and reported as null — never a
+ *     fabricated negative trend.
+ *   - derived rate metrics (CTR/CPC/CPM/...) compare normally because
+ *     they can legitimately decrease; percentageChange still guards
+ *     against zero/missing denominators (null, never NaN/Infinity).
+ *
+ * The pricing layer is applied exactly as getClientPricingView does to
+ * BOTH periods, so the displayed change is consistent with the displayed
+ * (customer) value. Nothing is reimplemented here.
+ */
+export async function getClientDashboardData(
+  user: Pick<User, "role" | "id" | "clientId">,
+  clientId: string,
+  db: Db = getDatabase(),
+  range: DashboardRange = defaultDashboardRange()
+): Promise<ClientDashboardData> {
+  await requireClientAccess(user, clientId, db);
+
+  const adAccountRepo = new SqliteAdAccountRepository(db);
+  const campaignRepo = new SqliteCampaignRepository(db);
+  const snapshotRepo = new SqliteInsightSnapshotRepository(db);
+
+  const adAccounts = await adAccountRepo.findByClient(clientId);
+
+  const campaignIds: string[] = [];
+  const campaignMeta = new Map<string, CampaignMeta>();
+  for (const adAccount of adAccounts) {
+    const campaigns = await campaignRepo.findByAdAccount(adAccount.id);
+    for (const campaign of campaigns) {
+      campaignMeta.set(campaign.id, {
+        name: campaign.name,
+        adAccountId: adAccount.id,
+        adAccountName: adAccount.name,
+      });
+      campaignIds.push(campaign.id);
+    }
+  }
+
+  const current = await aggregateForRange(
+    snapshotRepo,
+    campaignMeta,
+    campaignIds,
+    range
   );
-  const values = mergePricedValues(rawValues, pricedTotals.byMetric);
+  const previousRange = previousPeriod(range);
+  const previous = await aggregateForRange(
+    snapshotRepo,
+    campaignMeta,
+    campaignIds,
+    previousRange
+  );
+
+  const currentRaw = deriveClientMetrics(current.totals);
+  const previousRaw = deriveClientMetrics(previous.totals);
+
+  const values = await priceValues(clientId, currentRaw, range.to, db);
+  const previousValues = await priceValues(clientId, previousRaw, range.to, db);
+
+  const change = {} as Record<DashboardKpiKey, number | null>;
+  for (const key of Object.keys(currentRaw) as DashboardKpiKey[]) {
+    if (SUMMABLE_KEYS.includes(key)) {
+      change[key] =
+        current.totals[key] < previous.totals[key]
+          ? null
+          : percentageChange(values[key], previousValues[key]);
+    } else {
+      change[key] = percentageChange(values[key], previousValues[key]);
+    }
+  }
 
   const pricedCampaigns: ClientCampaignKpi[] = [];
-  for (const campaign of campaigns) {
-    const pricedCampaign = await getClientPricedKpis(
-      clientId,
-      campaign.values,
-      range.to,
-      undefined,
-      db
-    );
+  for (const campaign of current.campaigns) {
+    const pricedCampaign = await priceValues(clientId, campaign.values, range.to, db);
     pricedCampaigns.push({
       ...campaign,
-      values: mergePricedValues(campaign.values, pricedCampaign.byMetric),
+      values: pricedCampaign,
     });
   }
 
   return {
     values,
-    campaignCount: campaigns.length,
-    snapshotCount: snapshots.length,
+    campaignCount: current.campaigns.length,
+    snapshotCount: current.snapshotCount,
     campaigns: pricedCampaigns,
+    period: {
+      range,
+      previousRange,
+      change,
+    },
   };
 }

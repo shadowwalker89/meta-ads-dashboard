@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { DashboardKpiKey } from "@repo/shared";
 import { DEFAULT_VISIBLE_KPIS } from "@repo/shared";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
+import { PeriodSelector } from "@/components/dashboard/period-selector";
 import { CampaignPerformanceTable } from "@/components/dashboard/campaign-performance-table";
 
 function emptyValues(keys: DashboardKpiKey[]): Record<DashboardKpiKey, number> {
@@ -75,4 +76,55 @@ test("campaign table renders only the configured KPI columns", () => {
   assert.ok(!html.includes("نمایش‌ها"));
   assert.ok(!html.includes("کلیک روی لینک"));
   assert.ok(!html.includes("هزینه به ازای کلیک (CPC)"));
+});
+
+test("period selector renders the 7/30/90 whitelist and marks the active period", () => {
+  const html = renderToStaticMarkup(<PeriodSelector current={30} />);
+
+  assert.ok(html.includes("/dashboard?range=7"));
+  assert.ok(html.includes("/dashboard?range=30"));
+  assert.ok(html.includes("/dashboard?range=90"));
+  assert.ok(html.includes("۷ روز"));
+  assert.ok(html.includes("۳۰ روز"));
+  assert.ok(html.includes("۹۰ روز"));
+
+  // Exactly one tab is active: the current period.
+  const activeCount = html.split('aria-selected="true"').length - 1;
+  assert.equal(activeCount, 1);
+});
+
+test("kpi cards render positive, negative, and unavailable period changes", () => {
+  const values = emptyValues(["spend", "impressions"]);
+
+  const positive = renderToStaticMarkup(
+    <KpiCards
+      visibleKpis={["spend"]}
+      values={values}
+      changes={{ spend: 15 } as Record<DashboardKpiKey, number | null>}
+    />
+  );
+  assert.ok(positive.includes("▲"));
+  assert.ok(positive.includes("15%"));
+  assert.ok(positive.includes("نسبت به دوره قبل"));
+
+  const negative = renderToStaticMarkup(
+    <KpiCards
+      visibleKpis={["spend"]}
+      values={values}
+      changes={{ spend: -12.34 } as Record<DashboardKpiKey, number | null>}
+    />
+  );
+  assert.ok(negative.includes("▼"));
+  assert.ok(negative.includes("12.3%"));
+
+  // null → comparison unavailable/untrustworthy → "—", never a trend arrow.
+  const na = renderToStaticMarkup(
+    <KpiCards
+      visibleKpis={["spend", "impressions"]}
+      values={values}
+      changes={{ spend: null } as Record<DashboardKpiKey, number | null>}
+    />
+  );
+  assert.ok(na.includes("—"));
+  assert.ok(!na.includes("▲"));
 });
