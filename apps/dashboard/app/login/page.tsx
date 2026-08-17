@@ -26,6 +26,11 @@ const MOCK_LOGIN_OPTIONS = [
     label: "ورود به عنوان مشتری",
     variant: "outline",
   },
+  {
+    email: "democlient@example.com",
+    label: "ورود به عنوان مشتری (دمو)",
+    variant: "outline",
+  },
 ] as const;
 
 export default function LoginPage() {

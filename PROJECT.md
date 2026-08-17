@@ -1,6 +1,6 @@
 # PROJECT.md — Status Tracking
 
-Last updated: 2026-08-17 (Phase 2C Admin panel: Client/AdAccount management)
+Last updated: 2026-08-18 (Phase 2I Demo seed for the dashboard)
 
 For working rules and architectural constraints, see `CLAUDE.md`.
 For the data model, see `docs/domain-model.md`.
@@ -41,6 +41,33 @@ and its npm entry were **removed** (2026-08-17). The standalone `debug-export.ts
 diagnostic script remains (gitignored dev tool).
 
 ## What's implemented
+
+- **Demo seed (Phase 2I)** — `packages/database/src/demo-seed.ts`, run with
+  `pnpm --filter @repo/database demo-seed` (add `--reset` to rebuild). Creates a
+  fully synthetic, clearly labeled demo dataset so the existing dashboard is
+  demonstrable WITHOUT any real Meta account/session or fake Meta IDs:
+
+  - Demo clients: **Demo Silver Client** (Silver → charts + dataExport enabled)
+    and **Demo Gold Client** (Gold → charts + dataExport + advancedReporting).
+  - Demo user: **democlient@example.com** (client role, linked to Demo Silver
+    Client). Also added as a login option on the mock login page
+    (`/login` → "ورود به عنوان مشتری (دمو)").
+  - **admin1@example.com** (existing seed user) is assigned to both demo
+    clients, so the admin role can demonstrate the demo clients too.
+  - Deterministic per-client **pricing rules** (spend/cpc/cpm/costPerResult)
+    consumed by the existing pricing calculation.
+  - One labeled demo AdAccount per client (`metaAdAccountId = null` so the
+    collector can never act on it) + 5 synthetic Persian campaigns
+    (labels `demo:*`, names suffixed "دمو").
+  - 4 cumulative InsightSnapshots per campaign at now-1d / -10d / -40d /
+    -120d, so every 7/30/90 reporting window has BOTH current and previous
+    readings and all summable metrics increase monotonically → finite,
+    non-zero percentage changes on the KPI cards.
+  - Repeatable: demo snapshots are refreshed (delete + re-create) on every
+    run so the dataset stays current and never accumulates; higher-level
+    rows are created only when missing. `--reset` rebuilds everything.
+    Non-demo rows are never touched.
+  - ALL demo data is synthetic — never mistaken for real campaign data.
 
 - Monorepo: `apps/dashboard`, `apps/collector`, `packages/shared`, `packages/database`
 - Dashboard shell: Next.js 15 App Router, RTL/Persian, dark mode, shadcn/ui (Nova
@@ -132,6 +159,7 @@ diagnostic script remains (gitignored dev tool).
 cd packages/database
 pnpm run migrate
 pnpm run seed
+pnpm run demo-seed        # Phase 2I demo dataset (repeatable; use `pnpm run demo-seed --reset` to rebuild)
 pnpm run test          # smoke.test.ts + campaign-repository.test.ts
 
 # Collector
