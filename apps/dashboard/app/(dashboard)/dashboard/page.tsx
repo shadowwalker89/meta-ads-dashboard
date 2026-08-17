@@ -11,6 +11,10 @@ import { AccessError } from "@/lib/access";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
 import { CampaignPerformanceTable } from "@/components/dashboard/campaign-performance-table";
+import { ChartSection } from "@/components/dashboard/chart-section";
+import { AdvancedReportingSection } from "@/components/dashboard/advanced-reporting-section";
+import { DataExportButton } from "@/components/dashboard/data-export-button";
+import { getClientPackageFeatures } from "@/lib/package-features";
 
 const periodLabelFormatter = new Intl.NumberFormat("fa-IR");
 
@@ -51,6 +55,13 @@ export default async function DashboardPage({
 
   const visibleKpis = clientId ? await getClientKpiConfiguration(clientId) : [];
 
+  // Feature surfaces are resolved server-side from the authenticated
+  // user's Package entitlements — never from request input. This call
+  // re-verifies access through the same boundary (requireClientAccess)
+  // used by the data read above, so an unauthorized caller cannot see
+  // or enable any feature surface.
+  const features = clientId ? await getClientPackageFeatures(user, clientId) : null;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
@@ -66,7 +77,10 @@ export default async function DashboardPage({
       {clientId ? (
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">بازه‌ی گزارش‌گیری</span>
-          <PeriodSelector current={period} />
+          <div className="flex items-center gap-2">
+            {features?.dataExport ? <DataExportButton /> : null}
+            <PeriodSelector current={period} />
+          </div>
         </div>
       ) : null}
 
@@ -107,6 +121,9 @@ export default async function DashboardPage({
           visibleKpis={visibleKpis}
         />
       </section>
+
+      {features?.charts ? <ChartSection /> : null}
+      {features?.advancedReporting ? <AdvancedReportingSection /> : null}
     </div>
   );
 }
