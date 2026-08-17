@@ -17,6 +17,7 @@ const EXPECTED_MIGRATIONS = [
   "005_pricing_rules.sql",
   "006_add_package_settings.sql",
   "007_add_package_assigned_at.sql",
+  "008_add_snapshot_reporting_window.sql",
 ];
 
 const ORIGINAL_DATABASE_PATH = process.env.DATABASE_PATH;
@@ -88,6 +89,14 @@ test("fresh dashboard database initializes successfully and has all migrations a
     assert.ok(
       clientColumns.includes("package_assigned_at"),
       "clients.package_assigned_at should exist after 007"
+    );
+
+    const snapshotColumns = (
+      db.prepare("PRAGMA table_info(insight_snapshots)").all() as { name: string }[]
+    ).map((column) => column.name);
+    assert.ok(
+      snapshotColumns.includes("reporting_from") && snapshotColumns.includes("reporting_to"),
+      "insight_snapshots reporting window columns should exist after 008"
     );
   } finally {
     resetDatabaseForTests();

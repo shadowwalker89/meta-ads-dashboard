@@ -101,6 +101,8 @@ function snapshot(
   return {
     campaignId,
     capturedAt,
+    reportingFrom: null,
+    reportingTo: null,
     impressions: 1000,
     clicks: 100,
     linkClicks: 90,

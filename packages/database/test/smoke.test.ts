@@ -156,6 +156,8 @@ test("insight snapshots round-trip extended metrics and old rows default to 0", 
   const appended = await snapshots.append({
     campaignId: campaign.id,
     capturedAt: new Date("2026-01-01T00:00:00.000Z"),
+    reportingFrom: null,
+    reportingTo: null,
     impressions: 10000,
     clicks: 500,
     linkClicks: 400,
@@ -235,6 +237,116 @@ test("insight snapshots round-trip extended metrics and old rows default to 0", 
   assert.equal(legacy?.costPerResult, 0);
   assert.equal(legacy?.postReactions, 0);
   assert.equal(legacy?.postComments, 0);
+  // Reporting-window columns are nullable TEXT: a legacy row reads back
+  // with null bounds, never a fabricated/derived date.
+  assert.equal(legacy?.reportingFrom, null);
+  assert.equal(legacy?.reportingTo, null);
+
+  db.close();
+});
+
+test("reporting window: full/partial/missing bounds round-trip through the repository", async () => {
+  const db = new Database(":memory:");
+  db.pragma("foreign_keys = ON");
+  runMigrations(db);
+
+  const clients = new SqliteClientRepository(db);
+  const packages = new SqlitePackageRepository(db);
+  const adAccounts = new SqliteAdAccountRepository(db);
+  const campaigns = new SqliteCampaignRepository(db);
+  const snapshots = new SqliteInsightSnapshotRepository(db);
+
+  const pkg = await packages.create({
+    name: "Test",
+    description: "t",
+    code: "test",
+    collectionFrequency: 1,
+    maxAdAccounts: null,
+    maxCampaigns: null,
+    retentionDays: null,
+    defaultVisibleKpis: [],
+    features: { charts: false, dataExport: false, advancedReporting: false },
+    pricingDefaults: {},
+    metricThresholds: {},
+  });
+  const client = await clients.create({
+    name: "Client",
+    businessType: "E-commerce",
+    contactEmail: "c@example.com",
+    packageId: pkg.id,
+    isActive: true,
+  });
+  const account = await adAccounts.create({
+    clientId: client.id,
+    name: "Account",
+    status: "connected",
+    source: "playwright",
+    metaAdAccountId: null,
+  });
+  const campaign = await campaigns.create({
+    adAccountId: account.id,
+    name: "Campaign",
+    objective: "unknown",
+    status: "unknown",
+    scrapedLabel: "Campaign",
+    metaCampaignId: null,
+  });
+
+  const base = {
+    campaignId: campaign.id,
+    impressions: 1000,
+    clicks: 100,
+    linkClicks: 90,
+    spend: 50,
+    ctr: 10,
+    cpc: 0.5,
+    cpm: 50,
+    reach: 800,
+    frequency: 1,
+    clicksAll: 110,
+    uniqueClicks: 80,
+    uniqueCtr: 10,
+    landingPageViews: 70,
+    outboundClicks: 60,
+    outboundCtr: 6,
+    leads: 5,
+    messagesStarted: 2,
+    messagesContacts: 1,
+    results: 20,
+    costPerResult: 2.5,
+    postReactions: 30,
+    postComments: 4,
+    rawPayload: null,
+  };
+
+  // Full bounds: canonical dates survive insert → read → domain.
+  const full = await snapshots.append({
+    ...base,
+    capturedAt: new Date("2026-08-18T09:00:00.000Z"),
+    reportingFrom: new Date(Date.UTC(2025, 10, 28)),
+    reportingTo: new Date(Date.UTC(2026, 7, 18)),
+  });
+  const fullRead = await snapshots.findLatestForCampaign(campaign.id);
+  assert.equal(fullRead?.id, full.id);
+  assert.equal(fullRead?.reportingFrom?.toISOString(), "2025-11-28T00:00:00.000Z");
+  assert.equal(fullRead?.reportingTo?.toISOString(), "2026-08-18T00:00:00.000Z");
+  // captured_at is a different instant — never conflated with bounds.
+  assert.notEqual(fullRead?.capturedAt.toISOString(), fullRead?.reportingFrom?.toISOString());
+  assert.notEqual(fullRead?.capturedAt.toISOString(), fullRead?.reportingTo?.toISOString());
+
+  // Partial: reportingTo missing is stored as NULL, not silently filled.
+  await snapshots.append({
+    ...base,
+    campaignId: campaign.id,
+    capturedAt: new Date("2026-08-17T09:00:00.000Z"),
+    reportingFrom: new Date(Date.UTC(2026, 7, 1)),
+    reportingTo: null,
+  });
+  const range = await snapshots.findRangeForCampaign(campaign.id, new Date("2026-08-01T00:00:00.000Z"), new Date("2026-08-19T00:00:00.000Z"), { limit: 10 });
+  const partial = range.items.find((s) => s.reportingTo === null);
+  assert.ok(partial, "partial snapshot should read back");
+  assert.equal(partial?.reportingFrom?.toISOString(), "2026-08-01T00:00:00.000Z");
+  assert.equal(partial?.reportingTo, null);
 
   db.close();
 });

@@ -28,6 +28,7 @@ const ALL_FILES = [
   "005_pricing_rules.sql",
   "006_add_package_settings.sql",
   "007_add_package_assigned_at.sql",
+  "008_add_snapshot_reporting_window.sql",
 ];
 
 function createTestDb() {
@@ -67,10 +68,23 @@ test("fresh database applies every migration in order and records them", () => {
     "clients.package_assigned_at should exist after 007"
   );
 
+  const snapshotColumns = (
+    db.prepare("PRAGMA table_info(insight_snapshots)").all() as {
+      name: string;
+      notnull: number;
+    }[]
+  ).map((column) => ({ name: column.name, notnull: column.notnull }));
+  const reportingFrom = snapshotColumns.find((c) => c.name === "reporting_from");
+  const reportingTo = snapshotColumns.find((c) => c.name === "reporting_to");
+  assert.ok(reportingFrom, "insight_snapshots.reporting_from should exist after 008");
+  assert.ok(reportingTo, "insight_snapshots.reporting_to should exist after 008");
+  assert.equal(reportingFrom.notnull, 0, "reporting_from must stay nullable");
+  assert.equal(reportingTo.notnull, 0, "reporting_to must stay nullable");
+
   db.close();
 });
 
-test("005/006/007 re-run safely against a database that already contains their schema", () => {
+test("005/006/007/008 re-run safely against a database that already contains their schema", () => {
   const db = createTestDb();
   runMigrations(db);
 
@@ -92,9 +106,9 @@ test("005/006/007 re-run safely against a database that already contains their s
   );
 
   // Simulate "schema already present but migrations not recorded":
-  // forget that 005/006/007 were ever applied.
+  // forget that 005/006/007/008 were ever applied.
   db.prepare(
-    "DELETE FROM _migrations WHERE name IN ('005_pricing_rules.sql', '006_add_package_settings.sql', '007_add_package_assigned_at.sql')"
+    "DELETE FROM _migrations WHERE name IN ('005_pricing_rules.sql', '006_add_package_settings.sql', '007_add_package_assigned_at.sql', '008_add_snapshot_reporting_window.sql')"
   ).run();
 
   assert.doesNotThrow(() => runMigrations(db));
