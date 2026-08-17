@@ -7,8 +7,6 @@ import type { UserRole } from "@repo/shared";
 import {
   LayoutDashboard,
   Users,
-  Megaphone,
-  Settings,
   Navigation,
   SlidersHorizontal,
   BadgeDollarSign,
@@ -27,6 +25,15 @@ export function Sidebar({ role }: { role: UserRole }) {
             title: "تنظیم KPI مشتریان",
             href: "/dashboard/admin/kpi-config",
             icon: SlidersHorizontal,
+          },
+        ]
+      : []),
+    ...(role === "admin" || role === "super_admin"
+      ? [
+          {
+            title: "مدیریت مشتریان",
+            href: "/dashboard/admin/clients",
+            icon: Users,
           },
         ]
       : []),
@@ -54,9 +61,6 @@ export function Sidebar({ role }: { role: UserRole }) {
           },
         ]
       : []),
-    { title: "مشتریان", href: "/dashboard/clients", icon: Users },
-    { title: "کمپین‌ها", href: "/dashboard/campaigns", icon: Megaphone },
-    { title: "تنظیمات", href: "/dashboard/settings", icon: Settings },
   ];
 
   return (

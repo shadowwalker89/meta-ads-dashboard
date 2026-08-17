@@ -11,24 +11,62 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import type { UserRole } from "@repo/shared";
 import {
   Menu,
   LayoutDashboard,
   Users,
-  Megaphone,
-  Settings,
   Navigation,
+  SlidersHorizontal,
+  BadgeDollarSign,
+  Package,
+  ArrowRightLeft,
 } from "lucide-react";
 
-const navItems = [
-  { title: "داشبورد", href: "/dashboard", icon: LayoutDashboard },
-  { title: "مشتریان", href: "/dashboard/clients", icon: Users },
-  { title: "کمپین‌ها", href: "/dashboard/campaigns", icon: Megaphone },
-  { title: "تنظیمات", href: "/dashboard/settings", icon: Settings },
-];
-
-export function MobileNav() {
+export function MobileNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
+
+  const navItems = [
+    { title: "داشبورد", href: "/dashboard", icon: LayoutDashboard },
+    ...(role === "admin" || role === "super_admin"
+      ? [
+          {
+            title: "تنظیم KPI مشتریان",
+            href: "/dashboard/admin/kpi-config",
+            icon: SlidersHorizontal,
+          },
+          {
+            title: "مدیریت مشتریان",
+            href: "/dashboard/admin/clients",
+            icon: Users,
+          },
+        ]
+      : []),
+    ...(role === "super_admin"
+      ? [
+          {
+            title: "مدیریت پکیج‌ها",
+            href: "/dashboard/admin/packages",
+            icon: Package,
+          },
+          {
+            title: "اختصاص پکیج",
+            href: "/dashboard/admin/packages/assign",
+            icon: ArrowRightLeft,
+          },
+          {
+            title: "بررسی قیمت‌گذاری",
+            href: "/dashboard/admin/pricing",
+            icon: BadgeDollarSign,
+          },
+          {
+            title: "تنظیم قیمت‌گذاری",
+            href: "/dashboard/admin/pricing/config",
+            icon: BadgeDollarSign,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <Sheet>

@@ -3,12 +3,19 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/app/login/actions";
+import type { UserRole } from "@repo/shared";
 
-export function Topbar({ fullName }: { fullName: string }) {
+export function Topbar({
+  fullName,
+  role,
+}: {
+  fullName: string;
+  role: UserRole;
+}) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur supports-backdrop-filter sm:px-6">
       <div className="flex items-center gap-3">
-        <MobileNav />
+        <MobileNav role={role} />
         <span className="text-sm text-muted-foreground">
           خوش آمدید،{" "}
           <span className="font-medium text-foreground">{fullName}</span>

@@ -24,7 +24,7 @@ export default async function DashboardGroupLayout({
     <div className="flex min-h-screen">
       <Sidebar role={user.role} />
       <div className="flex flex-1 flex-col">
-        <Topbar fullName={user.fullName} />
+        <Topbar fullName={user.fullName} role={user.role} />
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>

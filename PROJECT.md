@@ -36,9 +36,9 @@ existing verified CSV export mechanism (test account, Draft campaign only):
 6. **Do not fabricate or infer the date format** — no code writes/reads these
    columns until point 4 is resolved.
 
-Artifacts: temporary observational script `apps/collector/src/debug-export-window.ts`
-and its `debug-export-window` npm entry in `apps/collector/package.json` (cleanup
-pending owner decision — see Pending work).
+Artifacts: the temporary observational script `apps/collector/src/debug-export-window.ts`
+and its npm entry were **removed** (2026-08-17). The standalone `debug-export.ts`
+diagnostic script remains (gitignored dev tool).
 
 ## What's implemented
 
@@ -67,7 +67,7 @@ pending owner decision — see Pending work).
     `meta-ads-scraper.ts`) — includes both `Clicks (all)` and `Link clicks`
   - `MetricsParser` / `parseLocalizedNumber()` — handles Persian + English digits,
     thousands/decimal separators (both `,`/`.` orderings), currency symbols,
-    percentages, empty markers (`-`, `N/A`, ``) → unit-tested (15 cases)
+    percentages, empty markers (`-`, `N/A`, ``) → unit-tested (19 cases)
   - `CollectorOrchestrator` — Campaign Discovery (find-or-create by
     `scrapedLabel` via `CampaignRepository.findByAdAccountAndLabel`, added this
     sprint), saves `InsightSnapshot` rows, tracks `CollectorJob` lifecycle
@@ -130,7 +130,7 @@ pnpm run test          # smoke.test.ts + campaign-repository.test.ts
 
 # Collector
 cd apps/collector
-pnpm run test          # metrics-parser.test.ts (15 unit tests)
+pnpm run test          # metrics-parser.test.ts (19 unit tests)
 pnpm run bootstrap-session   # one-time manual login, headful
 pnpm start                   # real end-to-end run
 ```
