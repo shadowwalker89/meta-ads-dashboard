@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AccessError, requireUser } from "@/lib/access";
 import { DEFAULT_REPORTING_PERIOD, isReportingPeriod } from "@/lib/dashboard-period";
-import { runGetDashboardExport } from "@/lib/dashboard-export";
+import { runGetDashboardExport, toCsvFileBytes } from "@/lib/dashboard-export";
 
 /**
  * GET /api/dashboard/export?range=30
@@ -44,7 +44,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const { csv, filename } = await runGetDashboardExport(user, clientId, rangeDays);
-    return new NextResponse(csv, {
+    // UTF-8 BOM bytes so Excel/LibreOffice decode the Persian text correctly.
+    return new NextResponse(toCsvFileBytes(csv), {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",

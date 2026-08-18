@@ -30,10 +30,18 @@ export interface StatCardProps extends React.ComponentProps<"div"> {
   icon?: React.ReactNode
 }
 
+const TREND_CLASSES = {
+  up: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400",
+  down: "bg-destructive/10 text-destructive",
+  na: "bg-muted text-muted-foreground",
+} as const
+
 /**
- * کارت نمایش یک KPI منفرد (Impressions، Reach، Spend و ...).
- * کاملا presentational است: هیچ داده‌ای fetch نمی‌کند و هیچ mock دیفالتی ندارد؛
- * تمام مقادیر از طریق props تزریق می‌شوند.
+ * کارت فشرده نمایش یک KPI منفرد (Impressions، Reach، Spend و ...).
+ * کاملا presentational است: هیچ داده‌ای fetch نمی‌کند و هیچ mock دیفالتی
+ * ندارد؛ تمام مقادیر از طریق props تزریق می‌شوند. آیکون به‌صورت عمدی خنثی
+ * (muted) رندر می‌شود تا فضای رنگی آرام بماند — فقط روند مثبت/منفی رنگ
+ * معنایی دارد.
  */
 function StatCard({
   title,
@@ -49,27 +57,27 @@ function StatCard({
     <div
       data-slot="stat-card"
       className={cn(
-        "flex flex-col gap-2 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm",
+        "flex min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-card p-3.5 text-card-foreground shadow-sm",
         className
       )}
       {...props}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-muted-foreground">
+        <span className="truncate text-[0.72rem] font-medium leading-4 text-muted-foreground">
           {title}
         </span>
         {icon ? (
           <span
             data-slot="stat-card-icon"
-            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-4"
+            className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-3.5"
           >
             {icon}
           </span>
         ) : null}
       </div>
 
-      <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-semibold tracking-tight text-foreground">
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+        <span className="text-lg font-semibold tracking-tight text-foreground tabular-nums">
           {value}
         </span>
         {trend ? (
@@ -77,10 +85,8 @@ function StatCard({
             data-slot="stat-card-trend"
             data-direction={trend.direction}
             className={cn(
-              "inline-flex items-center gap-1 text-xs font-medium",
-              trend.direction === "up"
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-destructive"
+              "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.68rem] font-semibold",
+              TREND_CLASSES[trend.direction]
             )}
           >
             <span aria-hidden="true">
@@ -92,7 +98,10 @@ function StatCard({
           <span
             data-slot="stat-card-trend"
             data-direction="na"
-            className="text-xs font-medium text-muted-foreground"
+            className={cn(
+              "inline-flex items-center rounded-full px-1.5 py-0.5 text-[0.68rem] font-medium",
+              TREND_CLASSES.na
+            )}
           >
             —
           </span>
@@ -100,7 +109,7 @@ function StatCard({
       </div>
 
       {description || trend?.label ? (
-        <span className="text-xs text-muted-foreground">
+        <span className="truncate text-[0.68rem] leading-4 text-muted-foreground">
           {description}
           {description && trend?.label ? " · " : null}
           {trend?.label}

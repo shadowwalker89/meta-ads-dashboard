@@ -1,8 +1,13 @@
 import type { DashboardKpiKey } from "@repo/shared";
-import { KPI_CATALOG_BY_KEY } from "@repo/shared";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { formatKpiValue } from "@/lib/kpi-format";
 import { KPI_ICONS } from "@/lib/kpi-icons";
+import {
+  getKpiDescription,
+  getKpiLabel,
+  DASHBOARD_STRINGS,
+  type AppLanguage,
+} from "@/lib/i18n/strings";
 
 /**
  * Renders one KPI card. `change` is the percentage change vs the
@@ -13,14 +18,14 @@ export function KpiCard({
   kpiKey,
   value,
   change,
+  lang = "fa",
 }: {
   kpiKey: DashboardKpiKey;
   value: number;
   change?: number | null;
+  lang?: AppLanguage;
 }) {
-  const definition = KPI_CATALOG_BY_KEY.get(kpiKey);
-  if (!definition) return null;
-
+  const t = DASHBOARD_STRINGS[lang];
   const Icon = KPI_ICONS[kpiKey];
 
   const trend =
@@ -29,14 +34,14 @@ export function KpiCard({
       : {
           value: Math.abs(Math.round(change * 10) / 10),
           direction: change >= 0 ? ("up" as const) : ("down" as const),
-          label: "نسبت به دوره قبل",
+          label: t.trendVsPrevious,
         };
 
   return (
     <StatCard
-      title={definition.label}
-      value={formatKpiValue(kpiKey, value)}
-      description={definition.description}
+      title={getKpiLabel(kpiKey, lang)}
+      value={formatKpiValue(kpiKey, value, lang)}
+      description={getKpiDescription(kpiKey, lang)}
       trend={trend}
       trendNa={change === null}
       icon={<Icon />}

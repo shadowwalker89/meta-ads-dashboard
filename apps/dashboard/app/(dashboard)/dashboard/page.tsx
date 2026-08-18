@@ -1,3 +1,11 @@
+import {
+  AlertTriangle,
+  CalendarRange,
+  Clock,
+  Inbox,
+  SlidersHorizontal,
+  UserRound,
+} from "lucide-react";
 import { requirePageAccess } from "@/lib/access";
 import { getClientDashboardData } from "@/lib/client-dashboard-data";
 import { getClientKpiConfiguration } from "@/lib/kpi-config";
@@ -5,6 +13,7 @@ import {
   DEFAULT_REPORTING_PERIOD,
   isReportingPeriod,
   reportingRangeForDays,
+  type DashboardRange,
   type ReportingPeriod,
 } from "@/lib/dashboard-period";
 import { AccessError } from "@/lib/access";
@@ -14,13 +23,71 @@ import { CampaignPerformanceTable } from "@/components/dashboard/campaign-perfor
 import { ChartSection } from "@/components/dashboard/chart-section";
 import { AdvancedReportingSection } from "@/components/dashboard/advanced-reporting-section";
 import { DataExportButton } from "@/components/dashboard/data-export-button";
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { getClientPackageFeatures } from "@/lib/package-features";
 import { resolveChartableMetrics } from "@/lib/campaign-chart";
+import { getDashboardLanguage } from "@/lib/i18n/language";
+import {
+  DASHBOARD_STRINGS,
+  tpl,
+  localeForLanguage,
+  type AppLanguage,
+} from "@/lib/i18n/strings";
 
-const periodLabelFormatter = new Intl.NumberFormat("fa-IR");
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+const numberFormatters = new Map<string, Intl.NumberFormat>();
+
+function dateFormatterFor(lang: AppLanguage): Intl.DateTimeFormat {
+  const locale = localeForLanguage(lang);
+  let formatter = dateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    dateFormatters.set(locale, formatter);
+  }
+  return formatter;
+}
+
+function dateTimeFormatterFor(lang: AppLanguage): Intl.DateTimeFormat {
+  const locale = localeForLanguage(lang);
+  let formatter = dateTimeFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    dateTimeFormatters.set(locale, formatter);
+  }
+  return formatter;
+}
+
+function numberFormatterFor(lang: AppLanguage): Intl.NumberFormat {
+  const locale = localeForLanguage(lang);
+  let formatter = numberFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale);
+    numberFormatters.set(locale, formatter);
+  }
+  return formatter;
+}
 
 function resolveReportingPeriod(value: unknown): ReportingPeriod {
   return isReportingPeriod(value) ? value : DEFAULT_REPORTING_PERIOD;
+}
+
+function formatRange(range: DashboardRange, lang: AppLanguage): string {
+  const formatter = dateFormatterFor(lang);
+  return tpl(DASHBOARD_STRINGS[lang].rangeFromTo, {
+    from: formatter.format(range.from),
+    to: formatter.format(range.to),
+  });
 }
 
 export default async function DashboardPage({
@@ -29,6 +96,8 @@ export default async function DashboardPage({
   searchParams: Promise<{ range?: string }>;
 }) {
   const user = await requirePageAccess();
+  const lang = await getDashboardLanguage();
+  const t = DASHBOARD_STRINGS[lang];
   const clientId = user.clientId ?? null;
 
   // `range` arrives from request input and is NEVER trusted: it is
@@ -69,63 +138,119 @@ export default async function DashboardPage({
   // `charts` flag below.
   const chartMetrics = resolveChartableMetrics(visibleKpis);
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">داشبورد</h1>
-        <p className="text-sm text-muted-foreground">
-          نمای کلی عملکرد کمپین‌های تبلیغاتی
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {user.fullName} ({user.email})
-        </p>
-      </div>
+  // Honest "as of" indicator: the most recent data collection time among
+  // the campaigns shown in this window (null when there is no data).
+  const lastCapturedAt =
+    data && data.campaigns.length > 0
+      ? data.campaigns.reduce(
+          (latest, campaign) =>
+            campaign.capturedAt > latest ? campaign.capturedAt : latest,
+          data.campaigns[0].capturedAt
+        )
+      : null;
 
-      {clientId ? (
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">بازه‌ی گزارش‌گیری</span>
-          <div className="flex items-center gap-2">
-            {features?.dataExport ? <DataExportButton period={period} /> : null}
-            <PeriodSelector current={period} />
-          </div>
+  return (
+    <div className="flex min-w-0 flex-col gap-5">
+      <section className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        {/* Subtle layered background: two blurred radial glows + a faint
+            grid. Purely decorative — aria-hidden and pointer-events-none. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -end-20 size-64 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -bottom-28 -start-14 size-56 rounded-full bg-chart-2/10 blur-3xl" />
+          <div className="hero-grid absolute inset-0 opacity-[0.05] dark:opacity-[0.07]" />
         </div>
-      ) : null}
+
+        <div className="relative flex min-w-0 flex-col gap-4 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <h1 className="text-xl font-semibold tracking-tight">
+                {t.dashboardTitle}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {t.dashboardSubtitle}
+              </p>
+            </div>
+
+            {clientId && data ? (
+              <div className="flex shrink-0 flex-col items-start gap-1 text-xs text-muted-foreground md:items-end">
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarRange className="size-3.5" aria-hidden="true" />
+                  {formatRange(data.period.range, lang)}
+                </span>
+                {lastCapturedAt ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock className="size-3.5" aria-hidden="true" />
+                    {t.lastUpdate}{" "}
+                    {dateTimeFormatterFor(lang).format(lastCapturedAt)}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {clientId ? (
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-border/60 pt-4">
+              <span className="text-xs font-medium text-muted-foreground">
+                {t.reportingRangeLabel}
+              </span>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {features?.dataExport ? <DataExportButton period={period} /> : null}
+                <PeriodSelector current={period} lang={lang} />
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
 
       {loadError ? (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-destructive/40 bg-destructive/5 text-sm text-destructive">
-          خطا در بارگذاری داده‌ها. دوباره تلاش کنید.
-        </div>
+        <DashboardEmptyState
+          tone="destructive"
+          icon={AlertTriangle}
+          message={t.errorLoadingData}
+          className="h-32"
+        />
       ) : data === null ? (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          برای مشاهده‌ی شاخص‌ها، وارد حساب مشتری شوید.
-        </div>
+        <DashboardEmptyState
+          icon={UserRound}
+          message={t.noClientAccount}
+          className="h-32"
+        />
       ) : visibleKpis.length === 0 ? (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          هیچ شاخصی برای این مشتری فعال نیست.
-        </div>
+        <DashboardEmptyState
+          icon={SlidersHorizontal}
+          message={t.noKpisActive}
+          hint={t.noKpisActiveHint}
+          className="h-32"
+        />
       ) : data.snapshotCount === 0 ? (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          هنوز داده‌ای برای این بازه ثبت نشده است.
-        </div>
+        <DashboardEmptyState
+          icon={Inbox}
+          message={t.noDataRecorded}
+          hint={t.noDataRecordedHint}
+          className="h-32"
+        />
       ) : (
         <KpiCards
           visibleKpis={visibleKpis}
           values={data.values}
           changes={data.period.change}
+          lang={lang}
         />
       )}
 
-      <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">عملکرد کمپین‌ها</h2>
-          <p className="text-xs text-muted-foreground">
-            جزئیات عملکرد هر کمپین بر اساس آخرین داده‌ی جمع‌آوری‌شده در بازه‌ی{" "}
-            {periodLabelFormatter.format(period)} روز اخیر
+      <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-sm font-semibold">{t.campaignTableTitle}</h2>
+          <p className="text-[0.7rem] leading-4 text-muted-foreground">
+            {tpl(t.campaignTableDescription, {
+              period: numberFormatterFor(lang).format(period),
+            })}
           </p>
         </div>
         <CampaignPerformanceTable
           campaigns={data?.campaigns ?? []}
           visibleKpis={visibleKpis}
+          lang={lang}
         />
       </section>
 
@@ -136,7 +261,9 @@ export default async function DashboardPage({
           period={period}
         />
       ) : null}
-      {features?.advancedReporting ? <AdvancedReportingSection /> : null}
+      {features?.advancedReporting ? (
+        <AdvancedReportingSection lang={lang} />
+      ) : null}
     </div>
   );
 }

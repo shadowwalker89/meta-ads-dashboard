@@ -1,6 +1,9 @@
 import type { DashboardKpiKey } from "@repo/shared";
-import { KPI_CATALOG_BY_KEY } from "@repo/shared";
 import type { ClientCampaignKpi } from "@/lib/client-kpis";
+import {
+  getKpiLabel,
+  type AppLanguage,
+} from "@/lib/i18n/strings";
 
 /**
  * Pure chart logic for the campaign-comparison chart.
@@ -75,9 +78,12 @@ export function buildCampaignChartRows(
     .sort((a, b) => b.value - a.value);
 }
 
-/** The catalog label for a chart metric (e.g. "هزینه تبلیغات"). */
-export function getChartMetricLabel(metric: DashboardKpiKey): string {
-  return KPI_CATALOG_BY_KEY.get(metric)?.label ?? metric;
+/** The catalog label for a chart metric (e.g. "هزینه تبلیغات" / "Ad Spend"). */
+export function getChartMetricLabel(
+  metric: DashboardKpiKey,
+  lang: AppLanguage = "fa"
+): string {
+  return getKpiLabel(metric, lang);
 }
 
 /**

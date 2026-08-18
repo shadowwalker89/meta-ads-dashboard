@@ -118,6 +118,27 @@ export function getDashboardExportFilename(
   return `dashboard-export-${rangeDays}d-${stamp}.csv`;
 }
 
+/**
+ * The UTF-8 byte sequence (EF BB BF) that Excel on Windows and most
+ * spreadsheet applications use to detect UTF-8. Without it, a CSV whose
+ * only non-ASCII content is Persian is often interpreted as the legacy
+ * system codepage and the Persian text shows as mojibake.
+ */
+const UTF8_BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+
+/**
+ * Encodes a CSV string into an Excel-compatible UTF-8 file: a leading
+ * UTF-8 BOM followed by the RFC-4180 CSV body. The text itself is never
+ * transliterated or re-escaped — this is purely an encoding boundary.
+ */
+export function toCsvFileBytes(csv: string): Uint8Array<ArrayBuffer> {
+  const body = new TextEncoder().encode(csv);
+  const out = new Uint8Array(UTF8_BOM.length + body.length);
+  out.set(UTF8_BOM);
+  out.set(body, UTF8_BOM.length);
+  return out;
+}
+
 export interface DashboardExport {
   csv: string;
   filename: string;

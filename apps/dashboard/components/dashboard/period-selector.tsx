@@ -4,12 +4,11 @@ import {
   REPORTING_PERIODS,
   type ReportingPeriod,
 } from "@/lib/dashboard-period";
-
-const PERIOD_LABELS: Record<ReportingPeriod, string> = {
-  7: "۷ روز",
-  30: "۳۰ روز",
-  90: "۹۰ روز",
-};
+import {
+  DASHBOARD_STRINGS,
+  periodLabel,
+  type AppLanguage,
+} from "@/lib/i18n/strings";
 
 /**
  * Server-side reporting-period selector (7/30/90 days). Pure links with
@@ -17,11 +16,18 @@ const PERIOD_LABELS: Record<ReportingPeriod, string> = {
  * never reads or trusts query input itself. Uses the existing dashboard
  * design tokens (segmented control look, same as the rest of the UI).
  */
-export function PeriodSelector({ current }: { current: ReportingPeriod }) {
+export function PeriodSelector({
+  current,
+  lang = "fa",
+}: {
+  current: ReportingPeriod;
+  lang?: AppLanguage;
+}) {
+  const t = DASHBOARD_STRINGS[lang];
   return (
     <div
       role="tablist"
-      aria-label="بازه‌ی گزارش‌گیری"
+      aria-label={t.periodAriaLabel}
       className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1"
     >
       {REPORTING_PERIODS.map((period) => {
@@ -39,7 +45,7 @@ export function PeriodSelector({ current }: { current: ReportingPeriod }) {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            {PERIOD_LABELS[period]}
+            {periodLabel(period, lang)}
           </Link>
         );
       })}

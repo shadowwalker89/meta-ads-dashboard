@@ -18,6 +18,7 @@ import { AccessError } from "@/lib/access";
 import {
   buildDashboardExportCsv,
   runGetDashboardExport,
+  toCsvFileBytes,
   toCsvRow,
 } from "@/lib/dashboard-export";
 import { AUDIT_ACTIONS } from "@/lib/audit";
@@ -469,4 +470,76 @@ test("csv: empty data builds a header-only CSV", () => {
   const csv = buildDashboardExportCsv(makeEmptyDashboardData(), ["spend"]);
   assert.equal(csv.trim().split("\r\n").length, 1);
   assert.ok(csv.includes("نام کمپین"));
+});
+
+// --- Excel-compatible UTF-8 encoding ---------------------------------------
+
+test("csv: the export file starts with the UTF-8 BOM so Excel detects UTF-8", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const client = await createClient(db, pkg.id, "مشتری دمو");
+  const account = await createAdAccount(db, client.id, "اکانت تبلیغاتی دمو");
+  const campaign = await createCampaign(db, account.id, "کمپین فروش — دمو");
+  await new SqliteInsightSnapshotRepository(db).append(
+    snapshot(campaign.id, new Date("2026-01-15T00:00:00.000Z"), { spend: 50, impressions: 1000 })
+  );
+
+  const user = await createUser(db, "client", client.id);
+  const { csv } = await runGetDashboardExport(user, client.id, 30, db, NOW);
+  const bytes = toCsvFileBytes(csv);
+
+  // Byte-for-byte UTF-8 BOM marker (EF BB BF).
+  assert.equal(bytes[0], 0xef);
+  assert.equal(bytes[1], 0xbb);
+  assert.equal(bytes[2], 0xbf);
+
+  db.close();
+});
+
+test("csv: decoding the file body preserves every Persian string exactly", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const client = await createClient(db, pkg.id, "مشتری دمو");
+  const account = await createAdAccount(db, client.id, "اکانت تبلیغاتی دمو");
+  const campaign = await createCampaign(db, account.id, "کمپین فروش — دمو");
+  await new SqliteInsightSnapshotRepository(db).append(
+    snapshot(campaign.id, new Date("2026-01-15T00:00:00.000Z"), { spend: 50, impressions: 1000 })
+  );
+
+  const user = await createUser(db, "client", client.id);
+  const { csv } = await runGetDashboardExport(user, client.id, 30, db, NOW);
+  const bytes = toCsvFileBytes(csv);
+
+  // Decoding the body (after the BOM) as UTF-8 must return the exact
+  // CSV — headers, campaign name, ad account, and the grand-total row.
+  const decoded = new TextDecoder("utf-8").decode(bytes.slice(3));
+  assert.equal(decoded, csv);
+  assert.ok(decoded.includes("نام کمپین"));
+  assert.ok(decoded.includes("کمپین فروش — دمو"));
+  assert.ok(decoded.includes("اکانت تبلیغاتی دمو"));
+  assert.ok(decoded.includes("جمع کل"));
+  // The customer (priced) value is intact — not transliterated or shifted.
+  assert.ok(decoded.includes("50"));
+  assert.ok(decoded.includes("1000"));
+
+  db.close();
+});
+
+test("csv: the encoding boundary never alters RFC-4180 escaping", () => {
+  const csv = buildDashboardExportCsv(makeEmptyDashboardData(), ["spend"]);
+  const bytes = toCsvFileBytes(csv);
+  const decoded = new TextDecoder("utf-8").decode(bytes.slice(3));
+  assert.equal(decoded, csv);
+
+  // ASCII comma and embedded quotes are escaped per RFC-4180; the byte
+  // layer must not change that.
+  const quoted = toCsvFileBytes(toCsvRow(["with, comma", 'say "hi"']));
+  const decodedQuoted = new TextDecoder("utf-8").decode(quoted.slice(3));
+  assert.equal(decodedQuoted, '"with, comma","say ""hi"""');
+
+  // A Persian comma is DATA (not a delimiter) — it stays unquoted, exactly
+  // like before the encoding change.
+  const persian = toCsvFileBytes(toCsvRow(["با، ویرگول"]));
+  const decodedPersian = new TextDecoder("utf-8").decode(persian.slice(3));
+  assert.equal(decodedPersian, "با، ویرگول");
 });

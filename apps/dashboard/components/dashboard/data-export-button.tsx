@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReportingPeriod } from "@/lib/dashboard-period";
+import { useDashboardLang } from "@/components/layout/language-provider";
 
 type ExportStatus = "idle" | "loading" | "success" | "error";
 
@@ -16,6 +17,7 @@ type ExportStatus = "idle" | "loading" | "success" | "error";
  * this button is only a convenience entry point — never an authority.
  */
 export function DataExportButton({ period }: { period: ReportingPeriod }) {
+  const { strings: t } = useDashboardLang();
   const [status, setStatus] = useState<ExportStatus>("idle");
 
   const handleExport = async () => {
@@ -57,17 +59,15 @@ export function DataExportButton({ period }: { period: ReportingPeriod }) {
         disabled={status === "loading"}
       >
         <Download data-slot="icon" aria-hidden="true" />
-        {status === "loading" ? "در حال تهیه‌ی خروجی…" : "خروجی داده"}
+        {status === "loading" ? t.exportLoading : t.exportIdle}
       </Button>
       {status === "success" ? (
         <p className="text-xs text-emerald-600 dark:text-emerald-400">
-          خروجی با موفقیت دانلود شد.
+          {t.exportSuccess}
         </p>
       ) : null}
       {status === "error" ? (
-        <p className="text-xs text-destructive">
-          تهیه‌ی خروجی ناموفق بود؛ دوباره تلاش کنید.
-        </p>
+        <p className="text-xs text-destructive">{t.exportError}</p>
       ) : null}
     </div>
   );

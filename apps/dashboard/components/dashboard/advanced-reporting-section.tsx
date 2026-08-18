@@ -1,4 +1,8 @@
 import { FeatureSection } from "@/components/dashboard/feature-section";
+import {
+  DASHBOARD_STRINGS,
+  type AppLanguage,
+} from "@/lib/i18n/strings";
 
 /**
  * Advanced-reporting surface, gated behind the package
@@ -7,12 +11,17 @@ import { FeatureSection } from "@/components/dashboard/feature-section";
  * This is the boundary that will host the real advanced-reporting
  * implementation later.
  */
-export function AdvancedReportingSection() {
+export function AdvancedReportingSection({
+  lang = "fa",
+}: {
+  lang?: AppLanguage;
+}) {
+  const t = DASHBOARD_STRINGS[lang];
   return (
     <FeatureSection
-      title="گزارش پیشرفته"
-      description="گزارش‌های تحلیلی فراتر از شاخص‌های اصلی"
-      emptyState="گزارش پیشرفته به‌زودی در این بخش ارائه می‌شود."
+      title={t.advancedTitle}
+      description={t.advancedDescription}
+      emptyState={t.advancedEmpty}
     />
   );
 }

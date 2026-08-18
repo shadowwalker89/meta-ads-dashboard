@@ -11,6 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useDashboardLang } from "@/components/layout/language-provider";
 import type { UserRole } from "@repo/shared";
 import {
   Menu,
@@ -25,43 +26,38 @@ import {
 
 export function MobileNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const { strings: t } = useDashboardLang();
 
   const navItems = [
-    { title: "داشبورد", href: "/dashboard", icon: LayoutDashboard },
+    { title: t.navDashboard, href: "/dashboard", icon: LayoutDashboard },
     ...(role === "admin" || role === "super_admin"
       ? [
           {
-            title: "تنظیم KPI مشتریان",
-            href: "/dashboard/admin/kpi-config",
+            title: t.navKpiConfig,
+            href: "/admin/kpi-config",
             icon: SlidersHorizontal,
-          },
-          {
-            title: "مدیریت مشتریان",
-            href: "/dashboard/admin/clients",
-            icon: Users,
           },
         ]
       : []),
+    ...(role === "admin" || role === "super_admin"
+      ? [{ title: t.navClients, href: "/admin/clients", icon: Users }]
+      : []),
     ...(role === "super_admin"
       ? [
+          { title: t.navPackages, href: "/admin/packages", icon: Package },
           {
-            title: "مدیریت پکیج‌ها",
-            href: "/dashboard/admin/packages",
-            icon: Package,
-          },
-          {
-            title: "اختصاص پکیج",
-            href: "/dashboard/admin/packages/assign",
+            title: t.navAssignPackage,
+            href: "/admin/packages/assign",
             icon: ArrowRightLeft,
           },
           {
-            title: "بررسی قیمت‌گذاری",
-            href: "/dashboard/admin/pricing",
+            title: t.navPricingReview,
+            href: "/admin/pricing",
             icon: BadgeDollarSign,
           },
           {
-            title: "تنظیم قیمت‌گذاری",
-            href: "/dashboard/admin/pricing/config",
+            title: t.navPricingConfig,
+            href: "/admin/pricing/config",
             icon: BadgeDollarSign,
           },
         ]
@@ -71,7 +67,12 @@ export function MobileNav({ role }: { role: UserRole }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          aria-label={t.navDashboard}
+        >
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
@@ -84,7 +85,7 @@ export function MobileNav({ role }: { role: UserRole }) {
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Navigation className="size-5" />
             </span>
-            پنل متا ادز
+            {t.brandTitle}
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 p-4">
