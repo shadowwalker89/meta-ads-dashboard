@@ -294,6 +294,10 @@ function toSnapshot(
   return {
     campaignId,
     capturedAt,
+    // Synthetic demo snapshots carry no real Meta reporting window;
+    // null is the honest value (never inferred from capturedAt).
+    reportingFrom: null,
+    reportingTo: null,
     impressions,
     clicks,
     linkClicks: totals.linkClicks,
