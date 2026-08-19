@@ -1,16 +1,20 @@
 import type { Database } from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type {
-  InsightSnapshot,
-  InsightSnapshotRepository,
-  PageRequest,
-  PageResult,
+import {
+  formatReportingDate,
+  parseReportingDate,
+  type InsightSnapshot,
+  type InsightSnapshotRepository,
+  type PageRequest,
+  type PageResult,
 } from "@repo/shared";
 
 interface InsightSnapshotRow {
   id: string;
   campaign_id: string;
   captured_at: string;
+  reporting_from: string | null;
+  reporting_to: string | null;
   impressions: number;
   clicks: number;
   link_clicks: number;
@@ -41,6 +45,8 @@ function toDomain(row: InsightSnapshotRow): InsightSnapshot {
     id: row.id,
     campaignId: row.campaign_id,
     capturedAt: new Date(row.captured_at),
+    reportingFrom: parseReportingDate(row.reporting_from),
+    reportingTo: parseReportingDate(row.reporting_to),
     impressions: row.impressions,
     clicks: row.clicks,
     linkClicks: row.link_clicks,
@@ -75,19 +81,21 @@ export class SqliteInsightSnapshotRepository implements InsightSnapshotRepositor
     this.db
       .prepare(
         `INSERT INTO insight_snapshots
-           (id, campaign_id, captured_at,
+           (id, campaign_id, captured_at, reporting_from, reporting_to,
             impressions, clicks, link_clicks, spend, ctr, cpc, cpm, reach,
             frequency, clicks_all, unique_clicks, unique_ctr,
             landing_page_views, outbound_clicks, outbound_ctr,
             leads, messages_started, messages_contacts, results, cost_per_result,
             post_reactions, post_comments,
             raw_payload)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         id,
         snapshot.campaignId,
         snapshot.capturedAt.toISOString(),
+        formatReportingDate(snapshot.reportingFrom),
+        formatReportingDate(snapshot.reportingTo),
         snapshot.impressions,
         snapshot.clicks,
         snapshot.linkClicks,

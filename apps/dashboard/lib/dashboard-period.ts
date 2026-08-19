@@ -10,8 +10,11 @@
  *
  * A reporting period is a trailing window `[from, to]` over snapshot
  * `captured_at` values — it selects readings by WHEN they were
- * collected, matching the cumulative/as-of snapshot semantics (the
- * readings' own reporting window is not stored and is never implied).
+ * collected, matching the cumulative/as-of snapshot semantics. A
+ * snapshot's own reporting window (reporting_from/reporting_to) is now
+ * stored, but it is never implied here: a snapshot without stored
+ * bounds is never labeled as covering a window just because it was
+ * captured recently.
  */
 
 export interface DashboardRange {

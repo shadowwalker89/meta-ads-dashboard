@@ -7,6 +7,7 @@ import type {
   CollectorJobRepository,
   InsightSnapshotRepository,
 } from "@repo/shared";
+import { parseReportingDate } from "@repo/shared";
 import type { CollectorProvider } from "./collector-provider.js";
 import type { MetricsParser } from "./metrics-parser.js";
 
@@ -70,10 +71,26 @@ export class CollectorOrchestrator {
         const campaign = await this.discoverCampaign(adAccount, raw.scrapedLabel);
 
         const parsed = this.deps.metricsParser.parse(raw);
+        // metaCampaignId stays at the parser boundary — the confirmed
+        // real export did not include the "Campaign ID" column, so it is
+        // not persisted yet. The reporting-window strings are validated
+        // to the confirmed YYYY-MM-DD format (parseReportingDate throws
+        // on anything else, failing the job loudly) and persisted as
+        // UTC-midnight dates. Null stays null — never inferred from
+        // capturedAt.
+        const {
+          metaCampaignId,
+          reportingFrom: rawReportingFrom,
+          reportingTo: rawReportingTo,
+          ...metrics
+        } = parsed;
+        void metaCampaignId;
         await this.deps.insightSnapshotRepository.append({
           campaignId: campaign.id,
           capturedAt: new Date(),
-          ...parsed,
+          reportingFrom: parseReportingDate(rawReportingFrom),
+          reportingTo: parseReportingDate(rawReportingTo),
+          ...metrics,
         });
         console.log(`[Collector] snapshot saved: campaignId=${campaign.id}`);
       }

@@ -42,9 +42,15 @@ class StubCollectorProvider implements CollectorProvider {
   }
 }
 
-function rawRow(scrapedLabel: string): RawCampaignMetrics {
+function rawRow(
+  scrapedLabel: string,
+  overrides: Partial<RawCampaignMetrics> = {}
+): RawCampaignMetrics {
   return {
     scrapedLabel,
+    metaCampaignId: null,
+    reportingFrom: null,
+    reportingTo: null,
     impressions: "1,000",
     clicks: "200",
     linkClicks: "200",
@@ -67,6 +73,7 @@ function rawRow(scrapedLabel: string): RawCampaignMetrics {
     costPerResult: "5.00",
     postReactions: "40",
     postComments: "5",
+    ...overrides,
   };
 }
 
@@ -450,6 +457,17 @@ test("scheduler: collected raw InsightSnapshot values are preserved", async () =
   assert.equal(snapshot.costPerResult, 5);
   assert.equal(snapshot.rawPayload?.scrapedLabel, "Summer Sale");
 
+  // Boundary fields are carried through rawPayload (groundwork for a
+  // future migration) and the reporting-window fields are now persisted
+  // as nullable InsightSnapshot columns — null here, never derived.
+  assert.equal(snapshot.rawPayload?.reportingFrom, null);
+  assert.equal(snapshot.rawPayload?.reportingTo, null);
+  assert.equal(snapshot.rawPayload?.metaCampaignId, null);
+  assert.equal(snapshot.reportingFrom, null);
+  assert.equal(snapshot.reportingTo, null);
+  assert.equal("reportingFrom" in snapshot, true);
+  assert.equal("reportingTo" in snapshot, true);
+
   h.db.close();
 });
 
@@ -487,6 +505,92 @@ test("scheduler: pricing rules and calculation remain unchanged", async () => {
   const applicable = selectApplicablePricingRule(rules, client.id, "cpc", REF);
   assert.equal(applicable?.id, rule.id);
   assert.equal(applyPricingRule(applicable, snapshot.cpc), 0.35);
+
+  h.db.close();
+});
+
+// --- Reporting-window persistence (Phase 2H) ----------------------------
+
+test("reporting window: confirmed YYYY-MM-DD bounds survive collector → SQLite → domain", async () => {
+  const h = harness([
+    rawRow("Iraq Lead Campaign", {
+      reportingFrom: "2025-11-28",
+      reportingTo: "2026-08-18",
+    }),
+  ]);
+  const pkg = await seedPackage(h.packageRepository);
+  const client = await seedClient(h.clientRepository, pkg.id, "Client A");
+  const account = await seedAdAccount(h.adAccountRepository, client.id, "Account 1");
+
+  await h.scheduler.runDueCollections(REF);
+
+  const campaigns = await h.campaignRepository.findByAdAccount(account.id);
+  const snapshot = await h.insightSnapshotRepository.findLatestForCampaign(campaigns[0].id);
+  assert.ok(snapshot);
+  assert.equal(snapshot.reportingFrom?.toISOString(), "2025-11-28T00:00:00.000Z");
+  assert.equal(snapshot.reportingTo?.toISOString(), "2026-08-18T00:00:00.000Z");
+
+  // Critical invariant: capturedAt is the capture instant, never equal
+  // to either reporting bound, and never a substitute for them.
+  assert.notEqual(snapshot.capturedAt.toISOString(), snapshot.reportingFrom?.toISOString());
+  assert.notEqual(snapshot.capturedAt.toISOString(), snapshot.reportingTo?.toISOString());
+  assert.equal(snapshot.reportingFrom?.getTime() < snapshot.capturedAt.getTime(), true);
+
+  h.db.close();
+});
+
+test("reporting window: missing bounds persist as NULL, never derived from capturedAt", async () => {
+  const h = harness([rawRow("No Bounds")]);
+  const pkg = await seedPackage(h.packageRepository);
+  const client = await seedClient(h.clientRepository, pkg.id, "Client A");
+  const account = await seedAdAccount(h.adAccountRepository, client.id, "Account 1");
+
+  await h.scheduler.runDueCollections(REF);
+
+  const campaigns = await h.campaignRepository.findByAdAccount(account.id);
+  const snapshot = await h.insightSnapshotRepository.findLatestForCampaign(campaigns[0].id);
+  assert.ok(snapshot);
+  assert.equal(snapshot.reportingFrom, null);
+  assert.equal(snapshot.reportingTo, null);
+  assert.ok(snapshot.capturedAt instanceof Date, "capturedAt is still recorded");
+
+  h.db.close();
+});
+
+test("reporting window: a partial bound is stored as-is, the missing side stays NULL", async () => {
+  const h = harness([
+    rawRow("Partial Bounds", { reportingFrom: "2026-08-01", reportingTo: null }),
+  ]);
+  const pkg = await seedPackage(h.packageRepository);
+  const client = await seedClient(h.clientRepository, pkg.id, "Client A");
+  const account = await seedAdAccount(h.adAccountRepository, client.id, "Account 1");
+
+  await h.scheduler.runDueCollections(REF);
+
+  const campaigns = await h.campaignRepository.findByAdAccount(account.id);
+  const snapshot = await h.insightSnapshotRepository.findLatestForCampaign(campaigns[0].id);
+  assert.ok(snapshot);
+  assert.equal(snapshot.reportingFrom?.toISOString(), "2026-08-01T00:00:00.000Z");
+  assert.equal(snapshot.reportingTo, null);
+
+  h.db.close();
+});
+
+test("reporting window: a non-YYYY-MM-DD value fails the job loudly, never guessed", async () => {
+  const h = harness([
+    rawRow("Bad Window", { reportingFrom: "2026/08/18", reportingTo: "2026-08-18" }),
+  ]);
+  const pkg = await seedPackage(h.packageRepository);
+  const client = await seedClient(h.clientRepository, pkg.id, "Client A");
+  const account = await seedAdAccount(h.adAccountRepository, client.id, "Account 1");
+
+  await h.scheduler.runDueCollections(REF);
+
+  const latest = await h.collectorJobRepository.findLatestForAdAccount(account.id);
+  assert.ok(latest);
+  assert.equal(latest.status, "failed");
+  assert.match(latest.errorMessage ?? "", /Invalid reporting date/);
+  assert.match(latest.errorMessage ?? "", /2026\/08\/18/);
 
   h.db.close();
 });

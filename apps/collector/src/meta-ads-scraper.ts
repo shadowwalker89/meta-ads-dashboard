@@ -37,6 +37,12 @@ const COLUMN_LABELS = {
   costPerResult: "Cost per result",
   postReactions: "Post reactions",
   postComments: "Post comments",
+  // Header names CONFIRMED from a real export (Phase 2B audit,
+  // 2026-08-17); the VALUES' date format is still unverified, so these
+  // are carried as opaque raw strings and never date-parsed. Missing
+  // columns normalize to null.
+  reportingFrom: "Reporting starts",
+  reportingTo: "Reporting ends",
 } as const;
 
 /**
@@ -194,6 +200,8 @@ export async function scrapeCampaignTable(
     costPerResult: columnIndex(COLUMN_LABELS.costPerResult),
     postReactions: columnIndex(COLUMN_LABELS.postReactions),
     postComments: columnIndex(COLUMN_LABELS.postComments),
+    reportingFrom: columnIndex(COLUMN_LABELS.reportingFrom),
+    reportingTo: columnIndex(COLUMN_LABELS.reportingTo),
   };
 
   if (indices.scrapedLabel === -1) {
@@ -217,9 +225,19 @@ export async function scrapeCampaignTable(
     if (!scrapedLabel) continue;
 
     const field = (index: number) => (index >= 0 ? (row[index] ?? "") : "");
+    // Like field(), but null when the column is missing entirely (an
+    // absent optional column reads as null, an empty present column as
+    // "" — the parser normalizes both to null).
+    const fieldOrNull = (index: number) => (index >= 0 ? (row[index] ?? "") : null);
 
     results.push({
       scrapedLabel,
+      // Campaign ID is not read from the CSV here: it was NOT present
+      // in the 2026-08-08 confirmed export columns. The parser's alias
+      // table still knows the column (for fixture/deterministic tests).
+      metaCampaignId: null,
+      reportingFrom: fieldOrNull(indices.reportingFrom),
+      reportingTo: fieldOrNull(indices.reportingTo),
       impressions: field(indices.impressions),
       clicks: field(indices.clicks),
       linkClicks: field(indices.linkClicks),

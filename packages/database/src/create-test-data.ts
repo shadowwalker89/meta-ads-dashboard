@@ -62,6 +62,8 @@ async function main() {
       await snapshots.append({
         campaignId: campaign.id,
         capturedAt: TEST_CAPTURED_AT,
+        reportingFrom: null,
+        reportingTo: null,
         impressions: 10000,
         clicks: 500,
         linkClicks: 400,
@@ -102,6 +104,8 @@ async function main() {
     await snapshots.append({
       campaignId: createdCampaign.id,
       capturedAt: TEST_CAPTURED_AT,
+      reportingFrom: null,
+      reportingTo: null,
       impressions: 10000,
       clicks: 500,
       linkClicks: 400,
@@ -149,6 +153,8 @@ async function main() {
   await snapshots.append({
     campaignId: createdCampaign.id,
     capturedAt: TEST_CAPTURED_AT,
+    reportingFrom: null,
+    reportingTo: null,
     impressions: 10000,
     clicks: 500,
     linkClicks: 400,

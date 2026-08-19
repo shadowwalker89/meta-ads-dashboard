@@ -259,6 +259,8 @@ test("package assignment: reassignment preserves pricing rules and raw snapshots
   const snapshot = await snapshots.append({
     campaignId: campaign.id,
     capturedAt: new Date("2026-01-01T00:00:00.000Z"),
+    reportingFrom: null,
+    reportingTo: null,
     impressions: 10000,
     clicks: 500,
     linkClicks: 400,

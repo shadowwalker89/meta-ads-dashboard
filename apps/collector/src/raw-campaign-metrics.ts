@@ -6,6 +6,21 @@
  */
 export interface RawCampaignMetrics {
   scrapedLabel: string;
+  /**
+   * Meta's "Campaign ID" column, when the export provides it (present in
+   * the test fixture). Read only at the parser boundary — NOT persisted
+   * to Campaign.metaCampaignId yet, because the 2026-08-08 confirmed
+   * export did not include the column. Null when the column is absent.
+   */
+  metaCampaignId: string | null;
+  /**
+   * "Reporting starts" / "Reporting ends" CSV columns. Header names are
+   * CONFIRMED from a real export (Phase 2B audit) but the exact date
+   * serialization is UNVERIFIED — so these are carried as opaque raw
+   * strings, never parsed or inferred. Null when absent or empty.
+   */
+  reportingFrom: string | null;
+  reportingTo: string | null;
   impressions: string;
   clicks: string;
   linkClicks: string;

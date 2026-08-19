@@ -1,8 +1,11 @@
-import { parseLocalizedNumber } from "./number-normalizer.js";
+import { EMPTY_TOKENS, parseLocalizedNumber } from "./number-normalizer.js";
 import type { RawCampaignMetrics } from "./raw-campaign-metrics.js";
 
 export interface ParsedCampaignMetrics {
   scrapedLabel: string;
+  metaCampaignId: string | null;
+  reportingFrom: string | null;
+  reportingTo: string | null;
   impressions: number;
   clicks: number;
   linkClicks: number;
@@ -41,6 +44,9 @@ type MetricField = Exclude<keyof ParsedCampaignMetrics, "rawPayload">;
  */
 const FIELD_ALIASES: Record<MetricField, string[]> = {
   scrapedLabel: ["Campaign name"],
+  metaCampaignId: ["Campaign ID"],
+  reportingFrom: ["Reporting starts"],
+  reportingTo: ["Reporting ends"],
   impressions: ["Impressions"],
   clicks: ["Link clicks"],
   linkClicks: ["Link clicks"],
@@ -95,9 +101,21 @@ for (const [field, aliases] of Object.entries(FIELD_ALIASES) as [
 export class MetricsParser {
   parse(raw: RawCampaignMetrics): ParsedCampaignMetrics {
     const toNumber = (value: string) => parseLocalizedNumber(value) ?? 0;
+    // Empty or absent reporting-window/campaign-id values normalize to
+    // null — never to a fabricated value, and never date-parsed (their
+    // serialization is unverified). Kept nullable: some Meta exports
+    // omit these columns entirely or return them empty. Uses the same
+    // "no value" markers ("-", "N/A", …) as parseLocalizedNumber.
+    const toNullableString = (value: string | null | undefined) => {
+      const trimmed = (value ?? "").trim();
+      return EMPTY_TOKENS.has(trimmed.toLowerCase()) ? null : trimmed;
+    };
 
     return {
       scrapedLabel: raw.scrapedLabel,
+      metaCampaignId: toNullableString(raw.metaCampaignId),
+      reportingFrom: toNullableString(raw.reportingFrom),
+      reportingTo: toNullableString(raw.reportingTo),
       impressions: toNumber(raw.impressions),
       clicks: toNumber(raw.clicks),
       linkClicks: toNumber(raw.linkClicks),
@@ -146,6 +164,9 @@ export class MetricsParser {
 
     return this.parse({
       scrapedLabel: get("scrapedLabel"),
+      metaCampaignId: get("metaCampaignId"),
+      reportingFrom: get("reportingFrom"),
+      reportingTo: get("reportingTo"),
       impressions: get("impressions"),
       clicks: get("clicks"),
       linkClicks: get("linkClicks"),

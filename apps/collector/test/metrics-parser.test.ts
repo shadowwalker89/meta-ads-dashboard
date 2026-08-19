@@ -67,6 +67,9 @@ test("MetricsParser: converts a full RawCampaignMetrics row", () => {
   const parser = new MetricsParser();
   const result = parser.parse({
     scrapedLabel: "Summer Sale",
+    metaCampaignId: "123456789012",
+    reportingFrom: "2026-08-01",
+    reportingTo: "2026-08-31",
     impressions: "۱۲٬۳۴۵",
     clicks: "1,234",
     linkClicks: "987",
@@ -115,6 +118,13 @@ test("MetricsParser: converts a full RawCampaignMetrics row", () => {
   assert.equal(result.costPerResult, 27.43);
   assert.equal(result.postReactions, 300);
   assert.equal(result.postComments, 25);
+
+  // Boundary fields are preserved VERBATIM as raw strings — never
+  // date-parsed, never inferred from capturedAt, even when present
+  // (their serialization is unverified).
+  assert.equal(result.metaCampaignId, "123456789012");
+  assert.equal(result.reportingFrom, "2026-08-01");
+  assert.equal(result.reportingTo, "2026-08-31");
 });
 
 test("MetricsParser: parseCsvRow maps a real Meta export row", () => {
@@ -145,6 +155,7 @@ test("MetricsParser: parseCsvRow maps a real Meta export row", () => {
   });
 
   assert.equal(result.scrapedLabel, "Iraq Lead Campaign");
+  assert.equal(result.metaCampaignId, "987654321012345");
   assert.equal(result.impressions, 100000);
   assert.equal(result.reach, 45000);
   assert.equal(result.frequency, 2.22);
@@ -217,6 +228,7 @@ test("MetricsParser: parses the real fixture CSV end-to-end", () => {
   const result = parser.parseCsvRow(rowObject);
 
   assert.equal(result.scrapedLabel, "Iraq Lead Campaign");
+  assert.equal(result.metaCampaignId, "987654321012345");
   assert.equal(result.impressions, 100000);
   assert.equal(result.reach, 45000);
   assert.equal(result.frequency, 2.22);
@@ -225,4 +237,56 @@ test("MetricsParser: parses the real fixture CSV end-to-end", () => {
   assert.equal(result.clicksAll, 3000);
   assert.equal(result.leads, 150);
   assert.equal(result.landingPageViews, 1800);
+
+  // The fixture has NO "Reporting starts"/"Reporting ends" columns → the
+  // parser must leave them null, and must NOT infer any date bounds.
+  assert.equal(result.reportingFrom, null);
+  assert.equal(result.reportingTo, null);
+});
+
+test("MetricsParser: empty reporting-window cells normalize to null, never inferred", () => {
+  const parser = new MetricsParser();
+
+  // Columns present in the CSV but empty ("-", "" are the real-world
+  // "no value" markers) → null, and nothing is derived from capturedAt.
+  const emptyCells = parser.parseCsvRow({
+    "Campaign name": "No Window",
+    "Reporting starts": "",
+    "Reporting ends": "-",
+  });
+  assert.equal(emptyCells.reportingFrom, null);
+  assert.equal(emptyCells.reportingTo, null);
+
+  // Absent columns entirely → same result via the parse() entry point.
+  const absent = parser.parse({
+    scrapedLabel: "No Window",
+    metaCampaignId: null,
+    reportingFrom: null,
+    reportingTo: null,
+    impressions: "0",
+    clicks: "0",
+    linkClicks: "0",
+    spend: "0",
+    ctr: "0",
+    cpc: "0",
+    cpm: "0",
+    reach: "0",
+    frequency: "0",
+    clicksAll: "0",
+    uniqueClicks: "0",
+    uniqueCtr: "0",
+    landingPageViews: "0",
+    outboundClicks: "0",
+    outboundCtr: "0",
+    leads: "0",
+    messagesStarted: "0",
+    messagesContacts: "0",
+    results: "0",
+    costPerResult: "0",
+    postReactions: "0",
+    postComments: "0",
+  });
+  assert.equal(absent.reportingFrom, null);
+  assert.equal(absent.reportingTo, null);
+  assert.equal(absent.metaCampaignId, null);
 });
