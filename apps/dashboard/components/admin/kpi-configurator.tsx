@@ -8,6 +8,11 @@ import {
   DEFAULT_VISIBLE_KPIS,
 } from "@repo/shared";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
+import {
+  getAdminKpiTitle,
+  KPI_GROUP_LABELS_EN,
+} from "@/lib/i18n/strings";
 import { saveClientKpiConfig } from "@/app/(dashboard)/admin/kpi-config/actions";
 
 interface KpiConfiguratorProps {
@@ -22,6 +27,7 @@ type SaveState =
   | { status: "error"; message: string };
 
 export function KpiConfigurator({ clients, configs }: KpiConfiguratorProps) {
+  const { strings: t } = useDashboardLang();
   const [selectedClientId, setSelectedClientId] = useState<string>(
     clients[0]?.id ?? ""
   );
@@ -36,9 +42,7 @@ export function KpiConfigurator({ clients, configs }: KpiConfiguratorProps) {
   if (clients.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-        {clients.length === 0
-          ? "هیچ مشتری‌ای به شما اختصاص داده نشده است."
-          : "مشتری‌ای برای تنظیم وجود ندارد."}
+        {t.kpiConfigNoAssigned}
       </div>
     );
   }
@@ -81,7 +85,7 @@ export function KpiConfigurator({ clients, configs }: KpiConfiguratorProps) {
           htmlFor="client-select"
           className="text-sm font-medium text-muted-foreground"
         >
-          مشتری
+          {t.kpiConfigClient}
         </label>
         <select
           id="client-select"
@@ -108,7 +112,7 @@ export function KpiConfigurator({ clients, configs }: KpiConfiguratorProps) {
               className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
             >
               <legend className="px-2 text-sm font-semibold">
-                {group.label}
+                {KPI_GROUP_LABELS_EN[group.key]}
               </legend>
               {groupKpis.map((definition) => (
                 <label
@@ -122,7 +126,9 @@ export function KpiConfigurator({ clients, configs }: KpiConfiguratorProps) {
                     className="mt-0.5 size-4 rounded border-border accent-primary"
                   />
                   <span className="flex flex-col gap-0.5">
-                    <span className="font-medium">{definition.label}</span>
+                    <span className="font-medium">
+                      {getAdminKpiTitle(definition.key)}
+                    </span>
                     <span className="text-xs text-muted-foreground">
                       {definition.description}
                     </span>
@@ -136,10 +142,10 @@ export function KpiConfigurator({ clients, configs }: KpiConfiguratorProps) {
 
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={saveState.status === "saving" || !dirty}>
-          {saveState.status === "saving" ? "در حال ذخیره..." : "ذخیره تنظیمات"}
+          {saveState.status === "saving" ? t.kpiConfigSaving : t.kpiConfigSave}
         </Button>
         {saveState.status === "success" && (
-          <p className="text-sm text-emerald-600">تنظیمات با موفقیت ذخیره شد.</p>
+          <p className="text-sm text-emerald-600">{t.kpiConfigSaved}</p>
         )}
         {saveState.status === "error" && (
           <p className="text-sm text-destructive">{saveState.message}</p>

@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { getKpiAdminPageData } from "@/lib/kpi-config";
+import { getDashboardLanguage } from "@/lib/i18n/language";
+import { DASHBOARD_STRINGS } from "@/lib/i18n/strings";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { KpiConfigurator } from "@/components/admin/kpi-configurator";
 
 export default async function AdminKpiConfigPage() {
@@ -13,16 +16,13 @@ export default async function AdminKpiConfigPage() {
     redirect("/dashboard");
   }
 
+  const lang = await getDashboardLanguage();
+  const t = DASHBOARD_STRINGS[lang];
   const { clients, configs } = await getKpiAdminPageData(user);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">تنظیم KPI مشتریان</h1>
-        <p className="text-sm text-muted-foreground">
-          مشخص کنید هر مشتری کدام شاخص‌ها را در داشبورد خود ببیند.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <AdminPageHeader title={t.adminKpiConfigTitle} subtitle={t.adminKpiConfigSubtitle} />
       <KpiConfigurator clients={clients} configs={configs} />
     </div>
   );

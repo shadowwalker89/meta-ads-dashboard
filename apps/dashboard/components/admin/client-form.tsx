@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { Package } from "@repo/shared";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
 import { createClient } from "@/app/(dashboard)/admin/clients/actions";
 
 interface ClientFormProps {
@@ -23,6 +24,7 @@ const inputClass =
 
 export function ClientForm({ packages, onCancel, onDone }: ClientFormProps) {
   const router = useRouter();
+  const { strings: t } = useDashboardLang();
   const [name, setName] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -68,37 +70,37 @@ export function ClientForm({ packages, onCancel, onDone }: ClientFormProps) {
   return (
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">مشتری جدید</h2>
+        <h2 className="text-base font-semibold">{t.clientNew}</h2>
         <Button variant="ghost" size="sm" onClick={onCancel}>
-          انصراف
+          {t.clientCancel}
         </Button>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label htmlFor="client-name" className="text-sm font-medium text-muted-foreground">
-            نام
+            {t.clientNameLabel}
           </label>
           <input
             id="client-name"
             value={name}
             onChange={setString(setName)}
-            placeholder="مثلاً فروشگاه آنلاین آریا"
+            placeholder={t.clientNamePlaceholder}
             className={inputClass}
           />
           {name.trim().length === 0 && saveState.status === "saving" && (
-            <p className="text-xs text-destructive">نام نمی‌تواند خالی باشد.</p>
+            <p className="text-xs text-destructive">{t.clientNameRequired}</p>
           )}
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="client-business" className="text-sm font-medium text-muted-foreground">
-            نوع کسب‌وکار
+            {t.clientBusinessLabel}
           </label>
           <input
             id="client-business"
             value={businessType}
             onChange={setString(setBusinessType)}
-            placeholder="مثلاً فروشگاهی"
+            placeholder={t.clientBusinessPlaceholder}
             className={inputClass}
           />
         </div>
@@ -107,21 +109,21 @@ export function ClientForm({ packages, onCancel, onDone }: ClientFormProps) {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label htmlFor="client-email" className="text-sm font-medium text-muted-foreground">
-            ایمیل تماس
+            {t.clientEmailLabel}
           </label>
           <input
             id="client-email"
             type="email"
             value={contactEmail}
             onChange={setString(setContactEmail)}
-            placeholder="client@example.com"
+            placeholder={t.clientEmailPlaceholder}
             dir="ltr"
             className={inputClass}
           />
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="client-package" className="text-sm font-medium text-muted-foreground">
-            پکیج
+            {t.clientPackageLabel}
           </label>
           <select
             id="client-package"
@@ -143,10 +145,10 @@ export function ClientForm({ packages, onCancel, onDone }: ClientFormProps) {
 
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={!canSave}>
-          {saveState.status === "saving" ? "در حال ذخیره..." : "ایجاد مشتری"}
+          {saveState.status === "saving" ? t.clientCreateSaving : t.clientNew}
         </Button>
         {saveState.status === "success" && (
-          <p className="text-sm text-emerald-600">مشتری با موفقیت ایجاد شد.</p>
+          <p className="text-sm text-emerald-600">{t.clientCreated}</p>
         )}
         {saveState.status === "error" && (
           <p className="text-sm text-destructive">{saveState.message}</p>

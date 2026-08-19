@@ -12,57 +12,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useDashboardLang } from "@/components/layout/language-provider";
+import { buildNavItems } from "@/lib/navigation";
 import type { UserRole } from "@repo/shared";
-import {
-  Menu,
-  LayoutDashboard,
-  Users,
-  Navigation,
-  SlidersHorizontal,
-  BadgeDollarSign,
-  Package,
-  ArrowRightLeft,
-} from "lucide-react";
+import { Menu, Navigation } from "lucide-react";
 
 export function MobileNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
   const { strings: t } = useDashboardLang();
 
-  const navItems = [
-    { title: t.navDashboard, href: "/dashboard", icon: LayoutDashboard },
-    ...(role === "admin" || role === "super_admin"
-      ? [
-          {
-            title: t.navKpiConfig,
-            href: "/admin/kpi-config",
-            icon: SlidersHorizontal,
-          },
-        ]
-      : []),
-    ...(role === "admin" || role === "super_admin"
-      ? [{ title: t.navClients, href: "/admin/clients", icon: Users }]
-      : []),
-    ...(role === "super_admin"
-      ? [
-          { title: t.navPackages, href: "/admin/packages", icon: Package },
-          {
-            title: t.navAssignPackage,
-            href: "/admin/packages/assign",
-            icon: ArrowRightLeft,
-          },
-          {
-            title: t.navPricingReview,
-            href: "/admin/pricing",
-            icon: BadgeDollarSign,
-          },
-          {
-            title: t.navPricingConfig,
-            href: "/admin/pricing/config",
-            icon: BadgeDollarSign,
-          },
-        ]
-      : []),
-  ];
+  const navItems = buildNavItems(role, t);
 
   return (
     <Sheet>

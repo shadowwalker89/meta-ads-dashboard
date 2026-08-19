@@ -4,6 +4,9 @@ import {
   canManagePackages,
   getPackageManagementData,
 } from "@/lib/package-admin";
+import { getDashboardLanguage } from "@/lib/i18n/language";
+import { DASHBOARD_STRINGS } from "@/lib/i18n/strings";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { PackageManagement } from "@/components/admin/package-management";
 
 export default async function AdminPackagesPage() {
@@ -16,17 +19,13 @@ export default async function AdminPackagesPage() {
     redirect("/dashboard");
   }
 
+  const lang = await getDashboardLanguage();
+  const t = DASHBOARD_STRINGS[lang];
   const packages = await getPackageManagementData();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">مدیریت پکیج‌ها</h1>
-        <p className="text-sm text-muted-foreground">
-          پکیج‌ها داده‌های قابل ویرایش هستند؛ تنظیمات از طریق اعتبارسنجی مشترک
-          ذخیره و پاک‌سازی می‌شوند.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <AdminPageHeader title={t.adminPackagesTitle} subtitle={t.adminPackagesSubtitle} />
       <PackageManagement packages={packages} />
     </div>
   );

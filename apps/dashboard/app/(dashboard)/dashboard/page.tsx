@@ -13,7 +13,6 @@ import {
   DEFAULT_REPORTING_PERIOD,
   isReportingPeriod,
   reportingRangeForDays,
-  type DashboardRange,
   type ReportingPeriod,
 } from "@/lib/dashboard-period";
 import { AccessError } from "@/lib/access";
@@ -27,67 +26,15 @@ import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-stat
 import { getClientPackageFeatures } from "@/lib/package-features";
 import { resolveChartableMetrics } from "@/lib/campaign-chart";
 import { getDashboardLanguage } from "@/lib/i18n/language";
+import { DASHBOARD_STRINGS, tpl } from "@/lib/i18n/strings";
 import {
-  DASHBOARD_STRINGS,
-  tpl,
-  localeForLanguage,
-  type AppLanguage,
-} from "@/lib/i18n/strings";
-
-const dateFormatters = new Map<string, Intl.DateTimeFormat>();
-const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
-const numberFormatters = new Map<string, Intl.NumberFormat>();
-
-function dateFormatterFor(lang: AppLanguage): Intl.DateTimeFormat {
-  const locale = localeForLanguage(lang);
-  let formatter = dateFormatters.get(locale);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat(locale, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    dateFormatters.set(locale, formatter);
-  }
-  return formatter;
-}
-
-function dateTimeFormatterFor(lang: AppLanguage): Intl.DateTimeFormat {
-  const locale = localeForLanguage(lang);
-  let formatter = dateTimeFormatters.get(locale);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat(locale, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    dateTimeFormatters.set(locale, formatter);
-  }
-  return formatter;
-}
-
-function numberFormatterFor(lang: AppLanguage): Intl.NumberFormat {
-  const locale = localeForLanguage(lang);
-  let formatter = numberFormatters.get(locale);
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale);
-    numberFormatters.set(locale, formatter);
-  }
-  return formatter;
-}
+  formatDateTime,
+  formatNumber,
+  formatRange,
+} from "@/lib/i18n/format";
 
 function resolveReportingPeriod(value: unknown): ReportingPeriod {
   return isReportingPeriod(value) ? value : DEFAULT_REPORTING_PERIOD;
-}
-
-function formatRange(range: DashboardRange, lang: AppLanguage): string {
-  const formatter = dateFormatterFor(lang);
-  return tpl(DASHBOARD_STRINGS[lang].rangeFromTo, {
-    from: formatter.format(range.from),
-    to: formatter.format(range.to),
-  });
 }
 
 export default async function DashboardPage({
@@ -175,13 +122,13 @@ export default async function DashboardPage({
               <div className="flex shrink-0 flex-col items-start gap-1 text-xs text-muted-foreground md:items-end">
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarRange className="size-3.5" aria-hidden="true" />
-                  {formatRange(data.period.range, lang)}
+                  {formatRange(lang, data.period.range)}
                 </span>
                 {lastCapturedAt ? (
                   <span className="inline-flex items-center gap-1.5">
                     <Clock className="size-3.5" aria-hidden="true" />
                     {t.lastUpdate}{" "}
-                    {dateTimeFormatterFor(lang).format(lastCapturedAt)}
+                    {formatDateTime(lang, lastCapturedAt)}
                   </span>
                 ) : null}
               </div>
@@ -243,7 +190,7 @@ export default async function DashboardPage({
           <h2 className="text-sm font-semibold">{t.campaignTableTitle}</h2>
           <p className="text-[0.7rem] leading-4 text-muted-foreground">
             {tpl(t.campaignTableDescription, {
-              period: numberFormatterFor(lang).format(period),
+              period: formatNumber(lang, period),
             })}
           </p>
         </div>

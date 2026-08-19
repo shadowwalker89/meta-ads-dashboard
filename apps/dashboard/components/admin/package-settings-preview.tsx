@@ -1,11 +1,17 @@
+"use client";
+
 import type {
   DashboardKpiKey,
   Package,
   PackageFeatures,
   PackagePricingDefaults,
 } from "@repo/shared";
-import { KPI_CATALOG_BY_KEY, PRICABLE_METRICS } from "@repo/shared";
+import { PRICABLE_METRICS } from "@repo/shared";
 import { formatRuleComponents } from "@/lib/pricing-format";
+import { useDashboardLang } from "@/components/layout/language-provider";
+import {
+  getAdminKpiTitle,
+} from "@/lib/i18n/strings";
 
 /**
  * Presentational. Renders a package's effective settings (entitlements,
@@ -13,6 +19,10 @@ import { formatRuleComponents } from "@/lib/pricing-format";
  * same data the package-settings resolver and pricing model use. It only
  * formats stored data; it never calculates pricing and never hard-codes
  * tier names.
+ *
+ * KPI names are shown with their official ENGLISH titles in both
+ * languages (deliberate product decision for the Admin panel); all other
+ * labels follow the dashboard language.
  */
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -24,41 +34,50 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatKpis(kpis: readonly DashboardKpiKey[]): string {
+function formatKpis(
+  kpis: readonly DashboardKpiKey[],
+  separator: string
+): string {
   if (kpis.length === 0) return "—";
-  return kpis
-    .map((key) => KPI_CATALOG_BY_KEY.get(key)?.label ?? key)
-    .join("، ");
+  return kpis.map((key) => getAdminKpiTitle(key)).join(separator);
 }
 
-const FEATURE_LABELS: { key: keyof PackageFeatures; label: string }[] = [
-  { key: "charts", label: "نمودار" },
-  { key: "dataExport", label: "خروجی داده" },
-  { key: "advancedReporting", label: "گزارش پیشرفته" },
-];
-
-function formatFeatures(features: PackageFeatures): string {
-  const enabled = FEATURE_LABELS.filter((feature) => features[feature.key]).map(
-    (feature) => feature.label
-  );
+function formatFeatures(
+  features: PackageFeatures,
+  labels: { key: keyof PackageFeatures; label: string }[]
+): string {
+  const enabled = labels
+    .filter((feature) => features[feature.key])
+    .map((feature) => feature.label);
   return enabled.length > 0 ? enabled.join("، ") : "—";
 }
 
-function formatPricingDefaults(defaults: PackagePricingDefaults): string {
+function formatPricingDefaults(
+  defaults: PackagePricingDefaults,
+  separator: string
+): string {
   const parts: string[] = [];
   for (const metric of PRICABLE_METRICS) {
     const config = defaults[metric];
     if (!config) continue;
-    const label = KPI_CATALOG_BY_KEY.get(metric)?.label ?? metric;
     const components = formatRuleComponents(config);
     if (components.length > 0) {
-      parts.push(`${label}: ${components.join("، ")}`);
+      parts.push(`${getAdminKpiTitle(metric)}: ${components.join(separator)}`);
     }
   }
   return parts.length > 0 ? parts.join("؛ ") : "—";
 }
 
 export function PackageSettingsPreview({ pkg }: { pkg: Package }) {
+  const { lang, strings: t } = useDashboardLang();
+  const separator = lang === "fa" ? "، " : ", ";
+
+  const featureLabels: { key: keyof PackageFeatures; label: string }[] = [
+    { key: "charts", label: t.featureCharts },
+    { key: "dataExport", label: t.featureDataExport },
+    { key: "advancedReporting", label: t.featureAdvancedReporting },
+  ];
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
@@ -74,24 +93,27 @@ export function PackageSettingsPreview({ pkg }: { pkg: Package }) {
       )}
       <div className="flex flex-col gap-2 border-t border-border pt-3">
         <Row
-          label="دفعات جمع‌آوری در روز"
+          label={t.pkgCollectionFrequency}
           value={String(pkg.collectionFrequency)}
         />
         <Row
-          label="حداکثر اکانت تبلیغاتی"
-          value={pkg.maxAdAccounts === null ? "نامحدود" : String(pkg.maxAdAccounts)}
+          label={t.pkgMaxAdAccounts}
+          value={pkg.maxAdAccounts === null ? t.pkgUnlimited : String(pkg.maxAdAccounts)}
         />
         <Row
-          label="حداکثر کمپین"
-          value={pkg.maxCampaigns === null ? "نامحدود" : String(pkg.maxCampaigns)}
+          label={t.pkgMaxCampaigns}
+          value={pkg.maxCampaigns === null ? t.pkgUnlimited : String(pkg.maxCampaigns)}
         />
         <Row
-          label="نگهداری داده (روز)"
-          value={pkg.retentionDays === null ? "نامحدود" : String(pkg.retentionDays)}
+          label={t.pkgRetentionDays}
+          value={pkg.retentionDays === null ? t.pkgUnlimited : String(pkg.retentionDays)}
         />
-        <Row label="KPI پیش‌فرض" value={formatKpis(pkg.defaultVisibleKpis)} />
-        <Row label="امکانات" value={formatFeatures(pkg.features)} />
-        <Row label="پیش‌فرض قیمت‌گذاری" value={formatPricingDefaults(pkg.pricingDefaults)} />
+        <Row label={t.pkgDefaultKpis} value={formatKpis(pkg.defaultVisibleKpis, separator)} />
+        <Row label={t.pkgFeatures} value={formatFeatures(pkg.features, featureLabels)} />
+        <Row
+          label={t.pkgPricingDefaults}
+          value={formatPricingDefaults(pkg.pricingDefaults, separator)}
+        />
       </div>
     </div>
   );

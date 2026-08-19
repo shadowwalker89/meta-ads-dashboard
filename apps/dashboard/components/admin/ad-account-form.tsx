@@ -3,6 +3,7 @@
 import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
 import { createAdAccount } from "@/app/(dashboard)/admin/clients/actions";
 
 interface AdAccountFormProps {
@@ -28,6 +29,7 @@ export function AdAccountForm({
   onDone,
 }: AdAccountFormProps) {
   const router = useRouter();
+  const { strings: t } = useDashboardLang();
   const [name, setName] = useState("");
   const [metaAdAccountId, setMetaAdAccountId] = useState("");
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
@@ -70,40 +72,40 @@ export function AdAccountForm({
   return (
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">اکانت تبلیغاتی جدید</h2>
+        <h2 className="text-base font-semibold">{t.adAccountNew}</h2>
         <Button variant="ghost" size="sm" onClick={onCancel}>
-          انصراف
+          {t.clientCancel}
         </Button>
       </div>
 
       {limitReached && (
         <p className="text-sm text-destructive">
-          سقف اکانت‌های این مشتری پر شده است؛ ابتدا پکیج را ارتقا دهید.
+          {t.adAccountLimitReached}
         </p>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label htmlFor="ad-account-name" className="text-sm font-medium text-muted-foreground">
-            نام
+            {t.clientNameLabel}
           </label>
           <input
             id="ad-account-name"
             value={name}
             onChange={setString(setName)}
-            placeholder="مثلاً اکانت اصلی"
+            placeholder={t.adAccountNamePlaceholder}
             className={inputClass}
           />
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="ad-account-meta-id" className="text-sm font-medium text-muted-foreground">
-            شناسه اکانت متا (اختیاری)
+            {t.adAccountMetaIdOptional}
           </label>
           <input
             id="ad-account-meta-id"
             value={metaAdAccountId}
             onChange={setString(setMetaAdAccountId)}
-            placeholder="مثلاً 2001900877879672"
+            placeholder={t.adAccountMetaIdPlaceholder}
             dir="ltr"
             className={inputClass}
           />
@@ -112,10 +114,10 @@ export function AdAccountForm({
 
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={!canSave}>
-          {saveState.status === "saving" ? "در حال ذخیره..." : "ایجاد اکانت"}
+          {saveState.status === "saving" ? t.clientCreateSaving : t.adAccountCreate}
         </Button>
         {saveState.status === "success" && (
-          <p className="text-sm text-emerald-600">اکانت با موفقیت ایجاد شد.</p>
+          <p className="text-sm text-emerald-600">{t.adAccountCreated}</p>
         )}
         {saveState.status === "error" && (
           <p className="text-sm text-destructive">{saveState.message}</p>

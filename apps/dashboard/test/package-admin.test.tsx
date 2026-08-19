@@ -151,10 +151,10 @@ test("package admin: package settings render correctly", () => {
   assert.ok(html.includes("5"));
   assert.ok(html.includes("50"));
   assert.ok(html.includes("90"));
-  // KPI default labels.
-  assert.ok(html.includes("هزینه تبلیغات"));
-  assert.ok(html.includes("نمایش‌ها"));
-  assert.ok(html.includes("نرخ کلیک (CTR)"));
+  // KPI default labels (English admin titles).
+  assert.ok(html.includes("Ad Spend"));
+  assert.ok(html.includes("Impressions"));
+  assert.ok(html.includes("Click-Through Rate (CTR)"));
   // Feature flags.
   assert.ok(html.includes("نمودار"));
   assert.ok(html.includes("گزارش پیشرفته"));
@@ -307,8 +307,8 @@ test("package admin: the package preview shows pricing defaults", () => {
   const html = renderToStaticMarkup(<PackageSettingsPreview pkg={makePackage()} />);
 
   assert.ok(html.includes("پیش‌فرض قیمت‌گذاری"));
-  assert.ok(html.includes("هزینه به ازای هزار نمایش (CPM)"));
-  assert.ok(html.includes("هزینه به ازای کلیک (CPC)"));
+  assert.ok(html.includes("Cost per 1K Impressions (CPM)"));
+  assert.ok(html.includes("Cost per Click (CPC)"));
 
   const cpmChips = formatRuleComponents({
     percentageMarkup: null,
@@ -336,7 +336,7 @@ test("package admin: a custom tier code renders data-driven (no hard-coded tiers
   );
   assert.ok(html.includes("custom-tier"));
   assert.ok(html.includes("Custom Tier"));
-  assert.ok(html.includes("هزینه به ازای هزار نمایش (CPM)"));
+  assert.ok(html.includes("Cost per 1K Impressions (CPM)"));
 
   db.close();
 });

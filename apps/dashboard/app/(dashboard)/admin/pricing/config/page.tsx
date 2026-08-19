@@ -6,7 +6,10 @@ import {
   getPricingAdminClients,
 } from "@/lib/pricing-admin";
 import { requireClientAccess } from "@/lib/access";
-import { PricingClientSelect } from "@/components/admin/pricing-client-select";
+import { getDashboardLanguage } from "@/lib/i18n/language";
+import { DASHBOARD_STRINGS } from "@/lib/i18n/strings";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminClientSelect } from "@/components/admin/admin-client-select";
 import { PricingConfigurator } from "@/components/admin/pricing-configurator";
 
 interface AdminPricingConfigPageProps {
@@ -25,6 +28,8 @@ export default async function AdminPricingConfigPage({
     redirect("/dashboard");
   }
 
+  const lang = await getDashboardLanguage();
+  const t = DASHBOARD_STRINGS[lang];
   const clients = await getPricingAdminClients();
   const { clientId } = await searchParams;
   const selectedClientId =
@@ -42,19 +47,17 @@ export default async function AdminPricingConfigPage({
     : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">تنظیم قیمت‌گذاری</h1>
-        <p className="text-sm text-muted-foreground">
-          برای هر متریک، یک قانون مؤثر جدید تعریف کنید. قوانین فقط اضافه
-          می‌شوند و هرگز تغییر یا حذف نمی‌شوند.
-        </p>
-      </div>
-
-      <PricingClientSelect
-        clients={clients}
-        selectedClientId={selectedClientId}
-        baseHref="/dashboard/admin/pricing/config"
+    <div className="flex flex-col gap-5">
+      <AdminPageHeader
+        title={t.adminPricingConfigTitle}
+        subtitle={t.adminPricingConfigSubtitle}
+        meta={
+          <AdminClientSelect
+            clients={clients}
+            selectedClientId={selectedClientId}
+            baseHref="/admin/pricing/config"
+          />
+        }
       />
 
       {config ? (
@@ -65,7 +68,7 @@ export default async function AdminPricingConfigPage({
         />
       ) : (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          برای تنظیم قیمت‌گذاری، ابتدا یک مشتری انتخاب کنید.
+          {t.pricingConfigSelectClientPrompt}
         </div>
       )}
     </div>

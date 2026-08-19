@@ -1,5 +1,8 @@
+"use client";
+
 import type { Package } from "@repo/shared";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
 import { PackageSettingsPreview } from "@/components/admin/package-settings-preview";
 import { formatRuleEffectiveDate } from "@/lib/pricing-format";
 import type { ClientAssignmentEntry } from "@/lib/package-admin";
@@ -38,12 +41,13 @@ export function PackageAssignmentPanel({
   const selectedClient = clients.find((client) => client.id === selectedClientId) ?? null;
   const selectedPackage = packages.find((pkg) => pkg.id === selectedPackageId) ?? null;
   const canAssign = selectedClientId !== "" && selectedPackageId !== null && !busy;
+  const { strings: t } = useDashboardLang();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
         <label htmlFor="assignment-client-select" className="text-sm font-medium text-muted-foreground">
-          مشتری
+          {t.assignSelectClient}
         </label>
         <select
           id="assignment-client-select"
@@ -60,28 +64,30 @@ export function PackageAssignmentPanel({
       </div>
 
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold text-muted-foreground">پکیج فعلی</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t.packageCurrent}</h2>
         {selectedClient ? (
           <div className="flex flex-col gap-1 text-sm">
             <span className="text-base font-semibold">
-              {selectedClient.packageName ?? "بدون پکیج"}
+              {selectedClient.packageName ?? t.assignNoPackage}
             </span>
             {selectedClient.packageAssignedAt ? (
               <span className="text-xs text-muted-foreground">
-                زمان انتساب: {formatRuleEffectiveDate(selectedClient.packageAssignedAt)}
+                {t.packageAssignedAt}: {formatRuleEffectiveDate(selectedClient.packageAssignedAt)}
               </span>
             ) : (
-              <span className="text-xs text-muted-foreground">زمان انتساب: —</span>
+              <span className="text-xs text-muted-foreground">
+                {t.packageAssignedAt}: —
+              </span>
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">مشتری‌ای انتخاب نشده است.</p>
+          <p className="text-sm text-muted-foreground">{t.assignNoClientSelected}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
         <label htmlFor="assignment-package-select" className="text-sm font-medium text-muted-foreground">
-          پکیج جدید
+          {t.assignNewPackage}
         </label>
         <select
           id="assignment-package-select"
@@ -89,7 +95,7 @@ export function PackageAssignmentPanel({
           onChange={(e) => onPackageChange(e.target.value)}
           className="h-9 w-full max-w-sm rounded-md border border-border bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
         >
-          <option value="">انتخاب پکیج...</option>
+          <option value="">{t.assignSelectPackagePlaceholder}</option>
           {packages.map((pkg) => (
             <option key={pkg.id} value={pkg.id}>
               {pkg.name}
@@ -101,7 +107,7 @@ export function PackageAssignmentPanel({
       {selectedPackage && (
         <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
           <h2 className="text-sm font-semibold text-muted-foreground">
-            پیش‌نمایش پکیج انتخابی
+            {t.assignPreviewTitle}
           </h2>
           <PackageSettingsPreview pkg={selectedPackage} />
         </div>
@@ -109,7 +115,7 @@ export function PackageAssignmentPanel({
 
       <div className="flex items-center gap-3">
         <Button onClick={onAssign} disabled={!canAssign}>
-          {busy ? "در حال انتساب..." : "اختصاص پکیج"}
+          {busy ? t.assignButtonBusy : t.assignButton}
         </Button>
         {success && <p className="text-sm text-emerald-600">{success}</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}

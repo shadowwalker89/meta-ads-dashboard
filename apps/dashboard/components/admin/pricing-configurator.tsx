@@ -3,8 +3,15 @@
 import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { PricingMetric } from "@repo/shared";
-import { KPI_CATALOG_BY_KEY, PRICABLE_METRICS } from "@repo/shared";
+import { PRICABLE_METRICS } from "@repo/shared";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
+import {
+  getAdminKpiTitle,
+  tpl,
+  type AppLanguage,
+  type DashboardStrings,
+} from "@/lib/i18n/strings";
 import type {
   ClientPricingConfigData,
   PricingMetricConfig,
@@ -76,10 +83,12 @@ function RuleHistorySection({
   title,
   rules,
   empty,
+  strings: t,
 }: {
   title: string;
   rules: PricingRule[];
   empty: string;
+  strings: DashboardStrings;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -95,7 +104,9 @@ function RuleHistorySection({
             >
               <RuleChips rule={rule} />
               <span className="mt-1 block text-xs text-muted-foreground">
-                از {formatRuleEffectiveDate(rule.effectiveFrom)}
+                {tpl(t.pricingEffectiveFrom, {
+                  date: formatRuleEffectiveDate(rule.effectiveFrom),
+                })}
               </span>
             </div>
           ))}
@@ -108,30 +119,34 @@ function RuleHistorySection({
 function PreviewRow({
   metric,
   config,
+  lang,
+  strings: t,
 }: {
   metric: PricingMetric;
   config: PricingMetricConfig;
+  lang: AppLanguage;
+  strings: DashboardStrings;
 }) {
   return (
     <div className="flex flex-col gap-1.5 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-muted-foreground">ارزش خام متا</span>
+        <span className="text-muted-foreground">{t.pricingRawValue}</span>
         <span className="tabular-nums">
-          {formatKpiValue(metric, config.rawValue)}
+          {formatKpiValue(metric, config.rawValue, lang)}
         </span>
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-muted-foreground">قانون فعلی</span>
+        <span className="text-muted-foreground">{t.pricingRuleCurrent}</span>
         {config.currentRule ? (
           <RuleChips rule={config.currentRule} />
         ) : (
-          <span className="text-muted-foreground">بدون قانون</span>
+          <span className="text-muted-foreground">{t.pricingNoRuleShort}</span>
         )}
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-muted-foreground">ارزش مشتری</span>
+        <span className="text-muted-foreground">{t.pricingCustomerValue}</span>
         <span className="tabular-nums text-base font-semibold text-primary">
-          {formatKpiValue(metric, config.currentCustomerValue)}
+          {formatKpiValue(metric, config.currentCustomerValue, lang)}
         </span>
       </div>
     </div>
@@ -144,6 +159,7 @@ export function PricingConfigurator({
   config,
 }: PricingConfiguratorProps) {
   const router = useRouter();
+  const { lang, strings: t } = useDashboardLang();
   const [selectedMetric, setSelectedMetric] = useState<PricingMetric>("spend");
   const [percentage, setPercentage] = useState("");
   const [fixed, setFixed] = useState("");
@@ -209,7 +225,7 @@ export function PricingConfigurator({
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">قانون جدید قیمت‌گذاری</h2>
+          <h2 className="text-base font-semibold">{t.pricingNewRuleTitle}</h2>
           <p className="text-xs text-muted-foreground">
             {clientName} — {clientId}
           </p>
@@ -220,7 +236,7 @@ export function PricingConfigurator({
             htmlFor="pricing-metric-select"
             className="text-sm font-medium text-muted-foreground"
           >
-            متریک
+            {t.pricingMetric}
           </label>
           <select
             id="pricing-metric-select"
@@ -232,7 +248,7 @@ export function PricingConfigurator({
           >
             {PRICABLE_METRICS.map((metric) => (
               <option key={metric} value={metric}>
-                {KPI_CATALOG_BY_KEY.get(metric)?.label ?? metric}
+                {getAdminKpiTitle(metric)}
               </option>
             ))}
           </select>
@@ -245,7 +261,7 @@ export function PricingConfigurator({
                 htmlFor="pricing-percentage"
                 className="text-sm font-medium text-muted-foreground"
               >
-                درصد افزایش (٪)
+                {t.pricingPercentage}
               </label>
               <input
                 id="pricing-percentage"
@@ -254,7 +270,7 @@ export function PricingConfigurator({
                 step="any"
                 value={percentage}
                 onChange={handleComponentChange(setPercentage)}
-                placeholder="مثلاً 40"
+                placeholder={t.pricingPercentagePlaceholder}
                 className="h-9 w-full max-w-sm rounded-md border border-border bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
               />
             </div>
@@ -264,7 +280,7 @@ export function PricingConfigurator({
                 htmlFor="pricing-fixed"
                 className="text-sm font-medium text-muted-foreground"
               >
-                افزایش ثابت (دلار)
+                {t.pricingFixed}
               </label>
               <input
                 id="pricing-fixed"
@@ -273,7 +289,7 @@ export function PricingConfigurator({
                 step="any"
                 value={fixed}
                 onChange={handleComponentChange(setFixed)}
-                placeholder="مثلاً 1.00"
+                placeholder={t.pricingFixedPlaceholder}
                 className="h-9 w-full max-w-sm rounded-md border border-border bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
               />
             </div>
@@ -283,7 +299,7 @@ export function PricingConfigurator({
                 htmlFor="pricing-minimum"
                 className="text-sm font-medium text-muted-foreground"
               >
-                حداقل ارزش مشتری (دلار)
+                {t.pricingMinimum}
               </label>
               <input
                 id="pricing-minimum"
@@ -292,7 +308,7 @@ export function PricingConfigurator({
                 step="any"
                 value={minimum}
                 onChange={handleComponentChange(setMinimum)}
-                placeholder="مثلاً 0.75"
+                placeholder={t.pricingMinimumPlaceholder}
                 className="h-9 w-full max-w-sm rounded-md border border-border bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
               />
             </div>
@@ -302,7 +318,7 @@ export function PricingConfigurator({
                 htmlFor="pricing-effective"
                 className="text-sm font-medium text-muted-foreground"
               >
-                تاریخ اعتبار
+                {t.pricingEffectiveDate}
               </label>
               <input
                 id="pricing-effective"
@@ -315,13 +331,10 @@ export function PricingConfigurator({
 
             <div className="flex items-center gap-3">
               <Button onClick={handleSave} disabled={!canSave || saveState.status === "saving"}>
-                {saveState.status === "saving" ? "در حال ذخیره..." : "ذخیره قانون"}
+                {saveState.status === "saving" ? t.pricingSaving : t.pricingSaveRule}
               </Button>
               {saveState.status === "success" && (
-                <p className="text-sm text-emerald-600">
-                  قانون جدید ثبت شد. در صورت نیاز، از نظر سرور یک قانون جدید با
-                  تاریخ اعتبار دلخواه ساخته می‌شود و قانون قبلی تغییری نمی‌کند.
-                </p>
+                <p className="text-sm text-emerald-600">{t.pricingRuleSaved}</p>
               )}
               {saveState.status === "error" && (
                 <p className="text-sm text-destructive">{saveState.message}</p>
@@ -330,19 +343,24 @@ export function PricingConfigurator({
 
             {!hasComponents && (
               <p className="text-xs text-muted-foreground">
-                حداقل یکی از سه جزء قیمت‌گذاری را وارد کنید.
+                {t.pricingComponentsHint}
               </p>
             )}
           </div>
 
           <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-4">
             <h3 className="text-sm font-semibold">
-              پیش‌نمایش برای {KPI_CATALOG_BY_KEY.get(selectedMetric)?.label ?? selectedMetric}
+              {tpl(t.pricingPreviewTitle, { kpi: getAdminKpiTitle(selectedMetric) })}
             </h3>
-            <PreviewRow metric={selectedMetric} config={metricConfig} />
+            <PreviewRow
+              metric={selectedMetric}
+              config={metricConfig}
+              lang={lang}
+              strings={t}
+            />
             <div className="flex flex-col gap-1.5 border-t border-border pt-3 text-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">پیش‌نمایش قانون جدید</span>
+                <span className="text-muted-foreground">{t.pricingPreviewNewRule}</span>
                 {hasComponents ? (
                   <RuleChips rule={draft} />
                 ) : (
@@ -350,19 +368,19 @@ export function PricingConfigurator({
                 )}
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">ارزش مشتری جدید</span>
+                <span className="text-muted-foreground">{t.pricingPreviewNewValue}</span>
                 <span className="tabular-nums text-base font-semibold text-primary">
                   {hasComponents
                     ? formatKpiValue(
                         selectedMetric,
-                        previewPricingValue(draft, metricConfig.rawValue)
+                        previewPricingValue(draft, metricConfig.rawValue),
+                        lang
                       )
                     : "—"}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                ارزش خام متا هرگز تغییر نمی‌کند؛ فرمول قیمت‌گذاری فقط روی ارزش
-                مشتری اعمال می‌شود.
+                {t.pricingPreviewNote}
               </p>
             </div>
           </div>
@@ -371,24 +389,26 @@ export function PricingConfigurator({
 
       <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
         <h2 className="text-base font-semibold">
-          تاریخچه‌ی قوانین —{" "}
-          {KPI_CATALOG_BY_KEY.get(selectedMetric)?.label ?? selectedMetric}
+          {tpl(t.pricingHistoryTitle, { kpi: getAdminKpiTitle(selectedMetric) })}
         </h2>
         <div className="grid gap-4 lg:grid-cols-3">
           <RuleHistorySection
-            title="قانون فعلی"
+            title={t.pricingRuleCurrent}
             rules={metricConfig.currentRule ? [metricConfig.currentRule] : []}
-            empty="قانونی در حال حاضر اعمال نمی‌شود."
+            empty={t.pricingRuleCurrentEmpty}
+            strings={t}
           />
           <RuleHistorySection
-            title="قوانین زمان‌بندی‌شده"
+            title={t.pricingRuleScheduled}
             rules={metricConfig.futureRules}
-            empty="قانونی برای آینده برنامه‌ریزی نشده است."
+            empty={t.pricingRuleScheduledEmpty}
+            strings={t}
           />
           <RuleHistorySection
-            title="قوانین قبلی"
+            title={t.pricingRuleHistorical}
             rules={metricConfig.historicalRules}
-            empty="قانون قبلی‌ای ثبت نشده است."
+            empty={t.pricingRuleHistoricalEmpty}
+            strings={t}
           />
         </div>
       </section>

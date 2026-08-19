@@ -6,14 +6,9 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@repo/shared";
 import { useDashboardLang } from "@/components/layout/language-provider";
+import { buildNavItems } from "@/lib/navigation";
 import {
-  LayoutDashboard,
-  Users,
   Navigation,
-  SlidersHorizontal,
-  BadgeDollarSign,
-  Package,
-  ArrowRightLeft,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -56,41 +51,7 @@ export function Sidebar({ role }: { role: UserRole }) {
     }
   };
 
-  const navItems = [
-    { title: t.navDashboard, href: "/dashboard", icon: LayoutDashboard },
-    ...(role === "admin" || role === "super_admin"
-      ? [
-          {
-            title: t.navKpiConfig,
-            href: "/admin/kpi-config",
-            icon: SlidersHorizontal,
-          },
-        ]
-      : []),
-    ...(role === "admin" || role === "super_admin"
-      ? [{ title: t.navClients, href: "/admin/clients", icon: Users }]
-      : []),
-    ...(role === "super_admin"
-      ? [
-          { title: t.navPackages, href: "/admin/packages", icon: Package },
-          {
-            title: t.navAssignPackage,
-            href: "/admin/packages/assign",
-            icon: ArrowRightLeft,
-          },
-          {
-            title: t.navPricingReview,
-            href: "/admin/pricing",
-            icon: BadgeDollarSign,
-          },
-          {
-            title: t.navPricingConfig,
-            href: "/admin/pricing/config",
-            icon: BadgeDollarSign,
-          },
-        ]
-      : []),
-  ];
+  const navItems = buildNavItems(role, t);
 
   return (
     <aside

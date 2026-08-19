@@ -3,16 +3,12 @@
 import { useState } from "react";
 import type { AdAccount } from "@repo/shared";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
+import { tpl, type DashboardStrings } from "@/lib/i18n/strings";
 import {
   updateAdAccountSource,
   updateAdAccountStatus,
 } from "@/app/(dashboard)/admin/clients/actions";
-
-const STATUS_LABELS: Record<AdAccount["status"], string> = {
-  connected: "متصل",
-  pending: "در انتظار",
-  error: "خطا",
-};
 
 const STATUS_STYLES: Record<AdAccount["status"], string> = {
   connected: "bg-emerald-500/15 text-emerald-600",
@@ -39,29 +35,44 @@ export function AdAccountList({
   limitReached: boolean;
   onCreate: () => void;
 }) {
+  const { strings: t } = useDashboardLang();
+  const statusLabels: Record<AdAccount["status"], string> = {
+    connected: t.statusConnected,
+    pending: t.statusPending,
+    error: t.statusError,
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <div>
           <Button onClick={onCreate} disabled={limitReached}>
-            اکانت تبلیغاتی جدید
+            {t.adAccountNew}
           </Button>
         </div>
         {maxAdAccounts !== null && (
           <p className="text-sm text-muted-foreground">
-            پکیج {packageName ?? ""}: حداکثر {maxAdAccounts} اکانت
+            {tpl(t.adAccountPackageLimit, {
+              package: packageName ?? "",
+              max: String(maxAdAccounts),
+            })}
           </p>
         )}
       </div>
 
       {adAccounts.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          این مشتری هنوز هیچ اکانت تبلیغاتی‌ای ندارد.
+          {t.adAccountEmpty}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {adAccounts.map((adAccount) => (
-            <AdAccountCard key={adAccount.id} adAccount={adAccount} />
+            <AdAccountCard
+              key={adAccount.id}
+              adAccount={adAccount}
+              statusLabels={statusLabels}
+              strings={t}
+            />
           ))}
         </div>
       )}
@@ -69,7 +80,15 @@ export function AdAccountList({
   );
 }
 
-function AdAccountCard({ adAccount }: { adAccount: AdAccount }) {
+function AdAccountCard({
+  adAccount,
+  statusLabels,
+  strings: t,
+}: {
+  adAccount: AdAccount;
+  statusLabels: Record<AdAccount["status"], string>;
+  strings: DashboardStrings;
+}) {
   const [metaId, setMetaId] = useState(adAccount.metaAdAccountId ?? "");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -84,7 +103,7 @@ function AdAccountCard({ adAccount }: { adAccount: AdAccount }) {
       trimmed.length > 0 ? trimmed : null
     );
     setBusy(false);
-    setFeedback(result.ok ? "ذخیره شد." : result.error);
+    setFeedback(result.ok ? t.adAccountSaved : result.error);
   }
 
   async function handleStatusChange(next: AdAccount["status"]) {
@@ -92,7 +111,7 @@ function AdAccountCard({ adAccount }: { adAccount: AdAccount }) {
     setFeedback(null);
     const result = await updateAdAccountStatus(adAccount.id, next);
     setBusy(false);
-    setFeedback(result.ok ? "وضعیت به‌روزرسانی شد." : result.error);
+    setFeedback(result.ok ? t.adAccountStatusUpdated : result.error);
   }
 
   return (
@@ -107,7 +126,7 @@ function AdAccountCard({ adAccount }: { adAccount: AdAccount }) {
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[adAccount.status]}`}
         >
-          {STATUS_LABELS[adAccount.status]}
+          {statusLabels[adAccount.status]}
         </span>
       </div>
 
@@ -116,14 +135,14 @@ function AdAccountCard({ adAccount }: { adAccount: AdAccount }) {
           htmlFor={`meta-id-${adAccount.id}`}
           className="text-xs font-medium text-muted-foreground"
         >
-          شناسه اکانت متا
+          {t.adAccountMetaIdLabel}
         </label>
         <div className="flex gap-2">
           <input
             id={`meta-id-${adAccount.id}`}
             value={metaId}
             onChange={(event) => setMetaId(event.target.value)}
-            placeholder="مثلاً 2001900877879672"
+            placeholder={t.adAccountMetaIdPlaceholder}
             dir="ltr"
             className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
           />
@@ -132,13 +151,13 @@ function AdAccountCard({ adAccount }: { adAccount: AdAccount }) {
             onClick={handleSaveMetaId}
             disabled={busy || metaId.trim() === (adAccount.metaAdAccountId ?? "")}
           >
-            ذخیره
+            {t.adAccountSave}
           </Button>
         </div>
       </div>
 
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">وضعیت:</span>
+        <span className="text-muted-foreground">{t.adAccountStatusLabel}</span>
         {(["connected", "pending", "error"] as const).map((status) => (
           <button
             key={status}
@@ -151,7 +170,7 @@ function AdAccountCard({ adAccount }: { adAccount: AdAccount }) {
                 : "text-muted-foreground underline-offset-2 hover:underline"
             }
           >
-            {STATUS_LABELS[status]}
+            {statusLabels[status]}
           </button>
         ))}
       </div>

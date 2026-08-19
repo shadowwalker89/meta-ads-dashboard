@@ -6,7 +6,10 @@ import {
   getPricingAdminClients,
 } from "@/lib/pricing-admin";
 import { requireClientAccess } from "@/lib/access";
-import { PricingClientSelect } from "@/components/admin/pricing-client-select";
+import { getDashboardLanguage } from "@/lib/i18n/language";
+import { DASHBOARD_STRINGS } from "@/lib/i18n/strings";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminClientSelect } from "@/components/admin/admin-client-select";
 import { PricingVerificationTable } from "@/components/admin/pricing-verification-table";
 
 interface AdminPricingPageProps {
@@ -25,6 +28,8 @@ export default async function AdminPricingPage({
     redirect("/dashboard");
   }
 
+  const lang = await getDashboardLanguage();
+  const t = DASHBOARD_STRINGS[lang];
   const clients = await getPricingAdminClients();
   const { clientId } = await searchParams;
   const selectedClientId =
@@ -42,21 +47,24 @@ export default async function AdminPricingPage({
     : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">بررسی قیمت‌گذاری</h1>
-        <p className="text-sm text-muted-foreground">
-          مسیر کامل قیمت‌گذاری: ارزش خام متا ← قانون قیمت‌گذاری ← ارزش مشتری
-        </p>
-      </div>
-
-      <PricingClientSelect clients={clients} selectedClientId={selectedClientId} />
+    <div className="flex flex-col gap-5">
+      <AdminPageHeader
+        title={t.adminPricingTitle}
+        subtitle={t.adminPricingSubtitle}
+        meta={
+          <AdminClientSelect
+            clients={clients}
+            selectedClientId={selectedClientId}
+            baseHref="/admin/pricing"
+          />
+        }
+      />
 
       {verification ? (
         <PricingVerificationTable verification={verification} />
       ) : (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          برای مشاهده‌ی قیمت‌گذاری، ابتدا یک مشتری انتخاب کنید.
+          {t.pricingSelectClientPrompt}
         </div>
       )}
     </div>

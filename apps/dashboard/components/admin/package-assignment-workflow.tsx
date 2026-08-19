@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Package } from "@repo/shared";
+import { useDashboardLang } from "@/components/layout/language-provider";
+import { tpl } from "@/lib/i18n/strings";
 import { PackageAssignmentPanel } from "@/components/admin/package-assignment-panel";
 import { assignPackage } from "@/app/(dashboard)/admin/packages/actions";
 import { formatRuleEffectiveDate } from "@/lib/pricing-format";
@@ -22,6 +24,7 @@ export function PackageAssignmentWorkflow({
   packages: Package[];
 }) {
   const router = useRouter();
+  const { strings: t } = useDashboardLang();
   const [selectedClientId, setSelectedClientId] = useState<string>(
     clients[0]?.id ?? ""
   );
@@ -43,8 +46,13 @@ export function PackageAssignmentWorkflow({
       const assignedAt = formatRuleEffectiveDate(value.packageAssignedAt);
       setSuccess(
         value.changed
-          ? `پکیج با موفقیت تغییر کرد. زمان انتساب: ${assignedAt} — قوانین قیمت‌گذاری ایجادشده: ${value.pricingRulesCreated}`
-          : `پکیج تغییری نکرد (همان پکیج فعلی بود). قوانین قیمت‌گذاری ایجادشده: ${value.pricingRulesCreated}`
+          ? tpl(t.assignSuccessChanged, {
+              date: assignedAt,
+              count: String(value.pricingRulesCreated),
+            })
+          : tpl(t.assignSuccessUnchanged, {
+              count: String(value.pricingRulesCreated),
+            })
       );
       setSelectedPackageId(null);
       router.refresh();

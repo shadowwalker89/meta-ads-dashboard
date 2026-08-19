@@ -63,7 +63,7 @@ test("pricing verification: no pricing rule shows raw as customer value", () => 
     />
   );
 
-  assert.ok(html.includes("هزینه به ازای هزار نمایش (CPM)"));
+  assert.ok(html.includes("Cost per 1K Impressions (CPM)"));
   assert.ok(html.includes("بدون قانون قیمت‌گذاری"));
   assert.ok(html.includes("بدون تغییر"));
   // Raw value rendered as customer value (raw unchanged).
@@ -95,7 +95,7 @@ test("pricing verification: percentage markup shows raw and customer correctly",
     />
   );
 
-  assert.ok(html.includes("هزینه به ازای کلیک (CPC)"));
+  assert.ok(html.includes("Cost per Click (CPC)"));
   assert.ok(html.includes("۰٫۲۵"));
   assert.ok(html.includes("۰٫۳۵"));
   // "+40%" is shown as a rule component.
@@ -170,15 +170,15 @@ test("pricing verification: non-cost KPIs never appear as priced metrics", () =>
     />
   );
 
-  // The four pricing metrics are listed.
-  assert.ok(html.includes("هزینه تبلیغات"));
-  assert.ok(html.includes("هزینه به ازای کلیک (CPC)"));
-  assert.ok(html.includes("هزینه به ازای هزار نمایش (CPM)"));
-  assert.ok(html.includes("هزینه به ازای نتیجه"));
+  // The four pricing metrics are listed with their English admin titles.
+  assert.ok(html.includes("Ad Spend"));
+  assert.ok(html.includes("Cost per Click (CPC)"));
+  assert.ok(html.includes("Cost per 1K Impressions (CPM)"));
+  assert.ok(html.includes("Cost per Result"));
 
   // Non-cost KPIs are never listed.
-  assert.ok(!html.includes("نمایش‌ها"));
-  assert.ok(!html.includes("نرخ کلیک (CTR)"));
-  assert.ok(!html.includes("دسترسی"));
-  assert.ok(!html.includes("فرکانس"));
+  assert.ok(!html.includes("Clicks"));
+  assert.ok(!html.includes("Click-Through Rate (CTR)"));
+  assert.ok(!html.includes("Reach"));
+  assert.ok(!html.includes("Frequency"));
 });

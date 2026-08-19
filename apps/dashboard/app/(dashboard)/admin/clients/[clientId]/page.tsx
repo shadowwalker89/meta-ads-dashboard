@@ -4,6 +4,9 @@ import {
   canManageClients,
   getAdAccountAdminData,
 } from "@/lib/client-admin";
+import { getDashboardLanguage } from "@/lib/i18n/language";
+import { DASHBOARD_STRINGS, tpl } from "@/lib/i18n/strings";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdAccountManagement } from "@/components/admin/ad-account-management";
 
 interface AdminClientDetailPageProps {
@@ -27,17 +30,18 @@ export default async function AdminClientDetailPage({
   try {
     data = await getAdAccountAdminData(user, clientId);
   } catch {
-    redirect("/dashboard/admin/clients");
+    redirect("/admin/clients");
   }
 
+  const lang = await getDashboardLanguage();
+  const t = DASHBOARD_STRINGS[lang];
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">{data.client.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          مدیریت اکانت‌های تبلیغاتی {data.client.name}.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <AdminPageHeader
+        title={data.client.name}
+        subtitle={tpl(t.adminClientDetailSubtitle, { name: data.client.name })}
+      />
       <AdAccountManagement data={data} />
     </div>
   );

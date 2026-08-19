@@ -1,5 +1,8 @@
+"use client";
+
 import type { Package } from "@repo/shared";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
 import { PackageSettingsPreview } from "@/components/admin/package-settings-preview";
 
 /**
@@ -16,15 +19,17 @@ export function PackageList({
   onCreate: () => void;
   onEdit: (pkg: Package) => void;
 }) {
+  const { strings: t } = useDashboardLang();
+
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <Button onClick={onCreate}>پکیج جدید</Button>
+        <Button onClick={onCreate}>{t.packageNew}</Button>
       </div>
 
       {packages.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          هنوز هیچ پکیجی تعریف نشده است.
+          {t.packageEmpty}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -41,7 +46,7 @@ export function PackageList({
                   onClick={() => onEdit(pkg)}
                   className="shrink-0"
                 >
-                  ویرایش
+                  {t.packageEdit}
                 </Button>
               </div>
             </div>

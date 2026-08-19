@@ -5,6 +5,9 @@ import {
   canManageClients,
   getClientAdminData,
 } from "@/lib/client-admin";
+import { getDashboardLanguage } from "@/lib/i18n/language";
+import { DASHBOARD_STRINGS } from "@/lib/i18n/strings";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { ClientManagement } from "@/components/admin/client-management";
 
 export default async function AdminClientsPage() {
@@ -17,16 +20,13 @@ export default async function AdminClientsPage() {
     redirect("/dashboard");
   }
 
+  const lang = await getDashboardLanguage();
+  const t = DASHBOARD_STRINGS[lang];
   const { clients, packages } = await getClientAdminData(user);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">مدیریت مشتریان</h1>
-        <p className="text-sm text-muted-foreground">
-          مشتریان، پکیج اختصاص‌داده‌شده و اکانت‌های تبلیغاتی آن‌ها را مدیریت کنید.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <AdminPageHeader title={t.adminClientsTitle} subtitle={t.adminClientsSubtitle} />
       <ClientManagement
         clients={clients}
         packages={packages}

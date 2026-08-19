@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import type { ClientAdminEntry } from "@/lib/client-admin";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
+import { tpl } from "@/lib/i18n/strings";
 import { deactivateClient } from "@/app/(dashboard)/admin/clients/actions";
 
 /**
@@ -18,17 +22,19 @@ export function ClientList({
   canCreate: boolean;
   onCreate: () => void;
 }) {
+  const { strings: t } = useDashboardLang();
+
   return (
     <div className="flex flex-col gap-4">
       {canCreate && (
         <div>
-          <Button onClick={onCreate}>مشتری جدید</Button>
+          <Button onClick={onCreate}>{t.clientNew}</Button>
         </div>
       )}
 
       {clients.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-          هنوز هیچ مشتری‌ای تعریف نشده است.
+          {t.clientEmpty}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -51,26 +57,33 @@ export function ClientList({
                       : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
                   }
                 >
-                  {client.isActive ? "فعال" : "غیرفعال"}
+                  {client.isActive ? t.clientActive : t.clientInactive}
                 </span>
               </div>
 
               <div className="flex flex-col gap-1 text-sm">
                 <span className="text-muted-foreground">
-                  پکیج: <span className="text-foreground">{client.packageName ?? "—"}</span>
+                  {t.clientPackageField}{" "}
+                  <span className="text-foreground">
+                    {client.packageName ?? "—"}
+                  </span>
                 </span>
                 <span className="text-muted-foreground">
-                  اکانت تبلیغاتی: <span className="text-foreground">{client.adAccountCount}</span>
+                  {t.clientAdAccountField}{" "}
+                  <span className="text-foreground">{client.adAccountCount}</span>
                 </span>
                 <span className="text-muted-foreground">
-                  ایمیل: <span className="text-foreground" dir="ltr">{client.contactEmail}</span>
+                  {t.clientEmailField}{" "}
+                  <span className="text-foreground" dir="ltr">
+                    {client.contactEmail}
+                  </span>
                 </span>
               </div>
 
               <div className="mt-auto flex gap-2">
                 <Button asChild variant="outline" size="sm" className="flex-1">
-                  <Link href={`/dashboard/admin/clients/${client.id}`}>
-                    مدیریت اکانت‌ها
+                  <Link href={`/admin/clients/${client.id}`}>
+                    {t.clientManageAccounts}
                   </Link>
                 </Button>
                 {canCreate && client.isActive && (
@@ -79,12 +92,12 @@ export function ClientList({
                     size="sm"
                     className="text-destructive hover:text-destructive"
                     onClick={() => {
-                      if (confirm(`مشتری «${client.name}» غیرفعال شود؟`)) {
+                      if (confirm(tpl(t.clientDeactivateConfirm, { name: client.name }))) {
                         deactivateClient(client.id);
                       }
                     }}
                   >
-                    غیرفعال
+                    {t.clientDeactivate}
                   </Button>
                 )}
               </div>

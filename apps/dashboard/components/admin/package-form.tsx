@@ -12,11 +12,16 @@ import {
   DEFAULT_PACKAGE_FEATURES,
   DEFAULT_VISIBLE_KPIS,
   KPI_CATALOG,
-  KPI_CATALOG_BY_KEY,
   KPI_GROUPS,
   PRICABLE_METRICS,
 } from "@repo/shared";
 import { Button } from "@/components/ui/button";
+import { useDashboardLang } from "@/components/layout/language-provider";
+import {
+  getAdminKpiTitle,
+  KPI_GROUP_LABELS_EN,
+  tpl,
+} from "@/lib/i18n/strings";
 import {
   createPackage,
   updatePackage,
@@ -105,6 +110,7 @@ export function PackageForm({
   onDone,
 }: PackageFormProps) {
   const router = useRouter();
+  const { strings: t } = useDashboardLang();
   const [name, setName] = useState(initial?.name ?? "");
   const [code, setCode] = useState(initial?.code ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -216,40 +222,42 @@ export function PackageForm({
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-semibold">
-          {mode === "create" ? "پکیج جدید" : `ویرایش پکیج ${initial?.name ?? ""}`}
+          {mode === "create"
+            ? t.packageNew
+            : tpl(t.pkgEditTitle, { name: initial?.name ?? "" })}
         </h2>
         <Button variant="ghost" size="sm" onClick={onCancel}>
-          انصراف
+          {t.clientCancel}
         </Button>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label htmlFor="pkg-name" className="text-sm font-medium text-muted-foreground">
-            نام
+            {t.pkgNameLabel}
           </label>
           <input id="pkg-name" value={name} onChange={setString(setName)} className={inputClass} />
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="pkg-code" className="text-sm font-medium text-muted-foreground">
-            کد پکیج
+            {t.pkgCodeLabel}
           </label>
           <input
             id="pkg-code"
             value={code}
             onChange={setString(setCode)}
-            placeholder="مثلاً premium"
+            placeholder={t.pkgCodePlaceholder}
             className={inputClass}
           />
           {!codeValid && (
-            <p className="text-xs text-destructive">کد پکیج نمی‌تواند خالی باشد.</p>
+            <p className="text-xs text-destructive">{t.pkgCodeRequired}</p>
           )}
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="pkg-description" className="text-sm font-medium text-muted-foreground">
-          توضیحات
+          {t.pkgDescriptionLabel}
         </label>
         <input
           id="pkg-description"
@@ -262,7 +270,7 @@ export function PackageForm({
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="flex flex-col gap-2">
           <label htmlFor="pkg-frequency" className="text-sm font-medium text-muted-foreground">
-            دفعات جمع‌آوری در روز
+            {t.pkgCollectionFrequency}
           </label>
           <input
             id="pkg-frequency"
@@ -276,7 +284,7 @@ export function PackageForm({
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="pkg-max-accounts" className="text-sm font-medium text-muted-foreground">
-            حداکثر اکانت تبلیغاتی
+            {t.pkgMaxAdAccounts}
           </label>
           <input
             id="pkg-max-accounts"
@@ -285,13 +293,13 @@ export function PackageForm({
             step="1"
             value={maxAdAccounts}
             onChange={setString(setMaxAdAccounts)}
-            placeholder="خالی = نامحدود"
+            placeholder={t.pkgUnlimitedPlaceholder}
             className={inputClass}
           />
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="pkg-max-campaigns" className="text-sm font-medium text-muted-foreground">
-            حداکثر کمپین
+            {t.pkgMaxCampaigns}
           </label>
           <input
             id="pkg-max-campaigns"
@@ -300,13 +308,13 @@ export function PackageForm({
             step="1"
             value={maxCampaigns}
             onChange={setString(setMaxCampaigns)}
-            placeholder="خالی = نامحدود"
+            placeholder={t.pkgUnlimitedPlaceholder}
             className={inputClass}
           />
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="pkg-retention" className="text-sm font-medium text-muted-foreground">
-            نگهداری داده (روز)
+            {t.pkgRetentionDays}
           </label>
           <input
             id="pkg-retention"
@@ -315,7 +323,7 @@ export function PackageForm({
             step="1"
             value={retentionDays}
             onChange={setString(setRetentionDays)}
-            placeholder="خالی = نامحدود"
+            placeholder={t.pkgUnlimitedPlaceholder}
             className={inputClass}
           />
         </div>
@@ -323,12 +331,14 @@ export function PackageForm({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <fieldset className="flex flex-col gap-3 rounded-lg border border-border p-4">
-          <legend className="px-2 text-sm font-semibold">KPI پیش‌فرض</legend>
+          <legend className="px-2 text-sm font-semibold">{t.pkgDefaultKpis}</legend>
           {KPI_GROUPS.map((group) => {
             const groupKpis = KPI_CATALOG.filter((def) => def.group === group.key);
             return (
               <div key={group.key} className="flex flex-col gap-1.5">
-                <p className="text-xs font-medium text-muted-foreground">{group.label}</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  {KPI_GROUP_LABELS_EN[group.key]}
+                </p>
                 {groupKpis.map((definition) => (
                   <label
                     key={definition.key}
@@ -340,7 +350,7 @@ export function PackageForm({
                       onChange={() => toggleKpi(definition.key)}
                       className="size-4 rounded border-border accent-primary"
                     />
-                    {definition.label}
+                    {getAdminKpiTitle(definition.key)}
                   </label>
                 ))}
               </div>
@@ -350,7 +360,7 @@ export function PackageForm({
 
         <div className="flex flex-col gap-4">
           <fieldset className="flex flex-col gap-2 rounded-lg border border-border p-4">
-            <legend className="px-2 text-sm font-semibold">امکانات</legend>
+            <legend className="px-2 text-sm font-semibold">{t.pkgFeatures}</legend>
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -358,7 +368,7 @@ export function PackageForm({
                 onChange={() => toggleFeature("charts")}
                 className="size-4 rounded border-border accent-primary"
               />
-              نمودار
+              {t.featureCharts}
             </label>
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input
@@ -367,7 +377,7 @@ export function PackageForm({
                 onChange={() => toggleFeature("dataExport")}
                 className="size-4 rounded border-border accent-primary"
               />
-              خروجی داده
+              {t.featureDataExport}
             </label>
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input
@@ -376,16 +386,16 @@ export function PackageForm({
                 onChange={() => toggleFeature("advancedReporting")}
                 className="size-4 rounded border-border accent-primary"
               />
-              گزارش پیشرفته
+              {t.featureAdvancedReporting}
             </label>
           </fieldset>
 
           <fieldset className="flex flex-col gap-3 rounded-lg border border-border p-4">
-            <legend className="px-2 text-sm font-semibold">پیش‌فرض قیمت‌گذاری</legend>
+            <legend className="px-2 text-sm font-semibold">{t.pkgPricingDefaults}</legend>
             {PRICABLE_METRICS.map((metric) => (
               <div key={metric} className="flex flex-col gap-1.5">
                 <p className="text-xs font-medium text-muted-foreground">
-                  {KPI_CATALOG_BY_KEY.get(metric)?.label ?? metric}
+                  {getAdminKpiTitle(metric)}
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   <input
@@ -394,8 +404,10 @@ export function PackageForm({
                     step="any"
                     value={pricing[metric].percentageMarkup}
                     onChange={setPricingField(metric, "percentageMarkup")}
-                    placeholder="٪ افزایش"
-                    aria-label={`${metric} درصد افزایش`}
+                    placeholder={t.pkgPricingPercentagePlaceholder}
+                    aria-label={tpl(t.pkgPricingPercentageAria, {
+                      metric: getAdminKpiTitle(metric),
+                    })}
                     className={inputClass}
                   />
                   <input
@@ -404,8 +416,10 @@ export function PackageForm({
                     step="any"
                     value={pricing[metric].fixedMarkup}
                     onChange={setPricingField(metric, "fixedMarkup")}
-                    placeholder="افزایش ثابت"
-                    aria-label={`${metric} افزایش ثابت`}
+                    placeholder={t.pkgPricingFixedPlaceholder}
+                    aria-label={tpl(t.pkgPricingFixedAria, {
+                      metric: getAdminKpiTitle(metric),
+                    })}
                     className={inputClass}
                   />
                   <input
@@ -414,8 +428,10 @@ export function PackageForm({
                     step="any"
                     value={pricing[metric].minimumCustomerValue}
                     onChange={setPricingField(metric, "minimumCustomerValue")}
-                    placeholder="حداقل"
-                    aria-label={`${metric} حداقل ارزش`}
+                    placeholder={t.pkgPricingMinimumPlaceholder}
+                    aria-label={tpl(t.pkgPricingMinimumAria, {
+                      metric: getAdminKpiTitle(metric),
+                    })}
                     className={inputClass}
                   />
                 </div>
@@ -427,10 +443,10 @@ export function PackageForm({
 
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={!canSave}>
-          {saveState.status === "saving" ? "در حال ذخیره..." : "ذخیره پکیج"}
+          {saveState.status === "saving" ? t.clientCreateSaving : t.pkgSave}
         </Button>
         {saveState.status === "success" && (
-          <p className="text-sm text-emerald-600">پکیج با موفقیت ذخیره شد.</p>
+          <p className="text-sm text-emerald-600">{t.pkgSaved}</p>
         )}
         {saveState.status === "error" && (
           <p className="text-sm text-destructive">{saveState.message}</p>

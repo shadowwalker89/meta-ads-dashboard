@@ -4,6 +4,9 @@ import {
   canManagePackages,
   getClientAssignmentData,
 } from "@/lib/package-admin";
+import { getDashboardLanguage } from "@/lib/i18n/language";
+import { DASHBOARD_STRINGS } from "@/lib/i18n/strings";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { PackageAssignmentWorkflow } from "@/components/admin/package-assignment-workflow";
 
 export default async function AdminPackageAssignPage() {
@@ -16,17 +19,13 @@ export default async function AdminPackageAssignPage() {
     redirect("/dashboard");
   }
 
+  const lang = await getDashboardLanguage();
+  const t = DASHBOARD_STRINGS[lang];
   const { clients, packages } = await getClientAssignmentData();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">اختصاص پکیج به مشتری</h1>
-        <p className="text-sm text-muted-foreground">
-          پس از انتساب، پیش‌فرض‌های قیمت‌گذاری پکیج به‌صورت خودکار به مشتری
-          منتقل می‌شوند.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <AdminPageHeader title={t.adminAssignTitle} subtitle={t.adminAssignSubtitle} />
       <PackageAssignmentWorkflow clients={clients} packages={packages} />
     </div>
   );
