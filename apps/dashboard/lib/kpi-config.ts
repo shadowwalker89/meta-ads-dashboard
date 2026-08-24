@@ -1,9 +1,6 @@
-import {
-  SqliteClientRepository,
-  SqliteDashboardPreferenceRepository,
-} from "@repo/database";
+import { SqliteDashboardPreferenceRepository } from "@repo/database";
 import { sqliteAuditService } from "@/lib/audit";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 import {
   accessibleClientIds,
   requireClientAccess,
@@ -104,8 +101,7 @@ export async function getClientKpiConfiguration(
 export async function getKpiAdminPageData(
   user: Pick<User, "role" | "id" | "clientId">
 ): Promise<{ clients: { id: string; name: string }[]; configs: Record<string, DashboardKpiKey[]> }> {
-  const db = getDatabase();
-  const clientRepo = new SqliteClientRepository(db);
+  const clientRepo = getRepositories().clientRepository;
 
   const clientIds = await accessibleClientIds(user);
 

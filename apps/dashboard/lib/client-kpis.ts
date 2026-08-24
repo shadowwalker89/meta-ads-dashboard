@@ -1,11 +1,6 @@
-import {
-  SqliteAdAccountRepository,
-  SqliteCampaignRepository,
-  SqliteInsightSnapshotRepository,
-} from "@repo/database";
 import type { AdAccount, Campaign, DashboardKpiKey, InsightSnapshot } from "@repo/shared";
 import { KPI_CATALOG } from "@repo/shared";
-import { getDatabase } from "@/lib/db";
+import { getRepositories } from "@/lib/db";
 
 export interface ClientCampaignKpi {
   campaignId: string;
@@ -118,10 +113,13 @@ export function deriveClientMetrics(totals: Record<DashboardKpiKey, number>): Re
  * KPIs are actually shown to the client.
  */
 export async function getClientKpis(clientId: string): Promise<ClientKpis> {
-  const db = getDatabase();
-  const adAccountRepo = new SqliteAdAccountRepository(db);
-  const campaignRepo = new SqliteCampaignRepository(db);
-  const snapshotRepo = new SqliteInsightSnapshotRepository(db);
+  // Repositories come from the storage-provider seam (DATABASE_PROVIDER
+  // selects the backend; sqlite is the default) — never constructed here.
+  const {
+    adAccountRepository: adAccountRepo,
+    campaignRepository: campaignRepo,
+    insightSnapshotRepository: snapshotRepo,
+  } = getRepositories();
 
   const adAccounts: AdAccount[] = await adAccountRepo.findByClient(clientId);
 

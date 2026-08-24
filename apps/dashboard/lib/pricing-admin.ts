@@ -7,7 +7,7 @@ import { PRICABLE_METRICS, selectApplicablePricingRule } from "@repo/shared";
 import { sqliteAuditService } from "@/lib/audit";
 import { getClientKpis } from "@/lib/client-kpis";
 import { getClientPricedKpis, type PricedKpi } from "@/lib/pricing";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 
 /**
  * Server-only. Super Admin verification of the complete pricing
@@ -100,7 +100,7 @@ export async function runCreatePricingRule(
 export async function getPricingAdminClients(): Promise<
   { id: string; name: string }[]
 > {
-  const repo = new SqliteClientRepository(getDatabase());
+  const repo = getRepositories().clientRepository;
   const all = await repo.list({ limit: 1000 });
   return all.items.map((c) => ({ id: c.id, name: c.name }));
 }
@@ -120,7 +120,7 @@ export interface ClientPricingVerification {
 export async function getClientPricingVerification(
   clientId: string
 ): Promise<ClientPricingVerification> {
-  const clientRepo = new SqliteClientRepository(getDatabase());
+  const clientRepo = getRepositories().clientRepository;
   const client = await clientRepo.findById(clientId);
 
   const kpis = await getClientKpis(clientId);
@@ -166,13 +166,13 @@ export async function getClientPricingConfigData(
   clientId: string,
   at: Date = new Date()
 ): Promise<ClientPricingConfigData> {
-  const clientRepo = new SqliteClientRepository(getDatabase());
+  const clientRepo = getRepositories().clientRepository;
   const client = await clientRepo.findById(clientId);
 
   const kpis = await getClientKpis(clientId);
   const { byMetric } = await getClientPricedKpis(clientId, kpis.values, at);
 
-  const ruleRepo = new SqlitePricingRuleRepository(getDatabase());
+  const ruleRepo = getRepositories().pricingRuleRepository;
   const rules = await ruleRepo.findByClient(clientId);
 
   const metricConfigs = {} as Record<PricingMetric, PricingMetricConfig>;
