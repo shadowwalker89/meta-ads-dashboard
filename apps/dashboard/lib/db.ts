@@ -1,6 +1,11 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { openDatabase, runMigrations } from "@repo/database";
+import {
+  createRepositories,
+  openDatabase,
+  runMigrations,
+  type RepositoryBundle,
+} from "@repo/database";
 
 // Server-only. Never import from middleware.ts (Edge runtime cannot
 // run better-sqlite3). The default path inside @repo/database is
@@ -67,6 +72,18 @@ export function getDatabase(): ReturnType<typeof openDatabase> {
   } finally {
     initializing = false;
   }
+}
+
+/**
+ * The storage-provider seam for the Dashboard: repositories are obtained
+ * through @repo/database's factory (DATABASE_PROVIDER selects the
+ * backend, sqlite is the default) instead of constructing Sqlite*
+ * classes directly. Service modules adopt this accessor incrementally;
+ * the future Supabase swap then changes this module and the provider
+ * package only — never a call site.
+ */
+export function getRepositories(): RepositoryBundle {
+  return createRepositories(getDatabase());
 }
 
 /**

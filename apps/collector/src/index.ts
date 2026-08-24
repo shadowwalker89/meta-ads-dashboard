@@ -1,13 +1,5 @@
-import { openDatabase, runMigrations } from "@repo/database";
-import {
-  SqliteAdAccountRepository,
-  SqliteCampaignRepository,
-  SqliteClientRepository,
-  SqliteCollectorJobRepository,
-  SqliteInsightSnapshotRepository,
-  SqlitePackageEnforcement,
-  SqlitePackageRepository,
-} from "@repo/database";
+import { createRepositories, openDatabase, runMigrations } from "@repo/database";
+import { SqlitePackageEnforcement } from "@repo/database";
 import { BrowserSessionManager } from "./browser-session-manager.js";
 import { PlaywrightCollector } from "./playwright-collector.js";
 import { MetricsParser } from "./metrics-parser.js";
@@ -27,12 +19,17 @@ async function main() {
   const metricsParser = new MetricsParser();
   const packageEnforcement = new SqlitePackageEnforcement(db);
 
+  // The single storage-provider seam: repositories come from the
+  // factory (DATABASE_PROVIDER selects the backend; sqlite is the
+  // default), never from direct Sqlite* construction here.
+  const repos = createRepositories(db);
+
   const orchestrator = new CollectorOrchestrator({
-    clientRepository: new SqliteClientRepository(db),
-    adAccountRepository: new SqliteAdAccountRepository(db),
-    campaignRepository: new SqliteCampaignRepository(db),
-    collectorJobRepository: new SqliteCollectorJobRepository(db),
-    insightSnapshotRepository: new SqliteInsightSnapshotRepository(db),
+    clientRepository: repos.clientRepository,
+    adAccountRepository: repos.adAccountRepository,
+    campaignRepository: repos.campaignRepository,
+    collectorJobRepository: repos.collectorJobRepository,
+    insightSnapshotRepository: repos.insightSnapshotRepository,
     collectorProvider,
     metricsParser,
     packageEnforcement,
@@ -44,10 +41,10 @@ async function main() {
   // an external cron/Task Scheduler/GH Action can invoke the same path
   // later without any change here.
   const scheduler = new CollectionScheduler({
-    clientRepository: new SqliteClientRepository(db),
-    adAccountRepository: new SqliteAdAccountRepository(db),
-    packageRepository: new SqlitePackageRepository(db),
-    collectorJobRepository: new SqliteCollectorJobRepository(db),
+    clientRepository: repos.clientRepository,
+    adAccountRepository: repos.adAccountRepository,
+    packageRepository: repos.packageRepository,
+    collectorJobRepository: repos.collectorJobRepository,
     orchestrator,
   });
 
