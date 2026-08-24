@@ -1,12 +1,7 @@
-import {
-  SqliteAdAccountRepository,
-  SqliteClientRepository,
-  SqlitePackageEnforcement,
-  SqlitePackageRepository,
-} from "@repo/database";
+import { SqlitePackageEnforcement } from "@repo/database";
 import type { AdAccount, Client, Package, User } from "@repo/shared";
 import { sqliteAuditService } from "@/lib/audit";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 import { accessibleClientIds, requireClientAccess, requireRole } from "@/lib/access";
 
 /**
@@ -79,14 +74,15 @@ export async function getClientAdminData(
   clients: ClientAdminEntry[];
   packages: Package[];
 }> {
-  const clientRepo = new SqliteClientRepository(db);
+  const { adAccountRepository, clientRepository, packageRepository } =
+    getRepositories(db);
   const clientIds = await accessibleClientIds(user, db);
 
   const clients: ClientAdminEntry[] = [];
   for (const clientId of clientIds) {
-    const client = await clientRepo.findById(clientId);
+    const client = await clientRepository.findById(clientId);
     if (!client) continue;
-    const adAccounts = await new SqliteAdAccountRepository(db).findByClient(clientId);
+    const adAccounts = await adAccountRepository.findByClient(clientId);
     clients.push({
       id: client.id,
       name: client.name,
@@ -99,10 +95,10 @@ export async function getClientAdminData(
     });
   }
 
-  const packages = await new SqlitePackageRepository(db).listAll();
+  const packages = await packageRepository.listAll();
   const packageById = new Map(packages.map((p) => [p.id, p]));
   for (const client of clients) {
-    const clientRow = await clientRepo.findById(client.id);
+    const clientRow = await clientRepository.findById(client.id);
     client.packageName = clientRow ? (packageById.get(clientRow.packageId)?.name ?? null) : null;
   }
 
@@ -121,12 +117,14 @@ export async function getAdAccountAdminData(
   db: Db = getDatabase()
 ): Promise<AdAccountAdminData> {
   await requireClientAccess(user, clientId, db);
-  const client = await new SqliteClientRepository(db).findById(clientId);
+  const { adAccountRepository, clientRepository, packageRepository } =
+    getRepositories(db);
+  const client = await clientRepository.findById(clientId);
   if (!client) {
     throw new Error(`مشتری یافت نشد: ${clientId}`);
   }
-  const adAccounts = await new SqliteAdAccountRepository(db).findByClient(clientId);
-  const pkg = await new SqlitePackageRepository(db).findById(client.packageId);
+  const adAccounts = await adAccountRepository.findByClient(clientId);
+  const pkg = await packageRepository.findById(client.packageId);
   return { client, adAccounts, package: pkg };
 }
 
@@ -146,7 +144,7 @@ export async function runCreateClient(
 ): Promise<ActionResult<Client>> {
   try {
     assertCanCreateClients(user);
-    const created = await new SqliteClientRepository(db).create({
+    const created = await getRepositories(db).clientRepository.create({
       name: input.name,
       businessType: input.businessType,
       contactEmail: input.contactEmail,
@@ -167,7 +165,7 @@ export async function runDeactivateClient(
 ): Promise<ActionResult<Client>> {
   try {
     assertCanCreateClients(user);
-    const repo = new SqliteClientRepository(db);
+    const repo = getRepositories(db).clientRepository;
     const existing = await repo.findById(clientId);
     if (!existing) {
       throw new Error(`مشتری یافت نشد: ${clientId}`);
@@ -203,8 +201,10 @@ export async function runCreateAdAccount(
   try {
     requireRole(user, "admin", "super_admin");
     await requireClientAccess(user, input.clientId, db);
+    // PackageEnforcement is a service (not a repository) and keeps its
+    // direct database-handle contract — deliberately not in the bundle.
     await new SqlitePackageEnforcement(db).assertCanCreateAdAccount(input.clientId);
-    const created = await new SqliteAdAccountRepository(db).create(input);
+    const created = await getRepositories(db).adAccountRepository.create(input);
     await sqliteAuditService(db).recordAdAccountCreated(user, created);
     return { ok: true, value: created };
   } catch (error) {
@@ -221,7 +221,7 @@ export async function runUpdateAdAccountSource(
 ): Promise<ActionResult<AdAccount>> {
   try {
     requireRole(user, "admin", "super_admin");
-    const repo = new SqliteAdAccountRepository(db);
+    const repo = getRepositories(db).adAccountRepository;
     const existing = await repo.findById(adAccountId);
     if (!existing) {
       throw new Error(`اکانت تبلیغاتی یافت نشد: ${adAccountId}`);
@@ -246,7 +246,7 @@ export async function runUpdateAdAccountStatus(
 ): Promise<ActionResult<AdAccount>> {
   try {
     requireRole(user, "admin", "super_admin");
-    const repo = new SqliteAdAccountRepository(db);
+    const repo = getRepositories(db).adAccountRepository;
     const existing = await repo.findById(adAccountId);
     if (!existing) {
       throw new Error(`اکانت تبلیغاتی یافت نشد: ${adAccountId}`);

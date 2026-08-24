@@ -1,8 +1,3 @@
-import {
-  SqliteClientRepository,
-  SqliteDashboardPreferenceRepository,
-  SqlitePackageRepository,
-} from "@repo/database";
 import type {
   DashboardKpiKey,
   Package,
@@ -14,7 +9,7 @@ import {
   DEFAULT_PACKAGE_FEATURES,
   resolveVisibleKpis,
 } from "@repo/shared";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 
 type Db = ReturnType<typeof getDatabase>;
 
@@ -110,7 +105,12 @@ export async function getClientPackageSettings(
   clientId: string,
   db: Db = getDatabase()
 ): Promise<EffectivePackageSettings> {
-  const client = await new SqliteClientRepository(db).findById(clientId);
+  const {
+    clientRepository,
+    dashboardPreferenceRepository,
+    packageRepository,
+  } = getRepositories(db);
+  const client = await clientRepository.findById(clientId);
   if (!client) {
     return resolveClientPackageSettings({
       clientId,
@@ -120,8 +120,8 @@ export async function getClientPackageSettings(
     });
   }
 
-  const pkg = await new SqlitePackageRepository(db).findById(client.packageId);
-  const preference = await new SqliteDashboardPreferenceRepository(db).findForClient(
+  const pkg = await packageRepository.findById(client.packageId);
+  const preference = await dashboardPreferenceRepository.findForClient(
     clientId
   );
 

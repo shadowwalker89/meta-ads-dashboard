@@ -1,9 +1,8 @@
-import {
-  SqliteAdAccountRepository,
-  SqliteCampaignRepository,
-  SqliteInsightSnapshotRepository,
-} from "@repo/database";
-import type { DashboardKpiKey, User } from "@repo/shared";
+import type {
+  DashboardKpiKey,
+  InsightSnapshotRepository,
+  User,
+} from "@repo/shared";
 import { requireClientAccess } from "@/lib/access";
 import {
   SUMMABLE_KEYS,
@@ -14,7 +13,7 @@ import {
 } from "@/lib/client-kpis";
 import { mergePricedValues } from "@/lib/client-pricing-view";
 import { getClientPricedKpis } from "@/lib/pricing";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 import {
   percentageChange,
   previousPeriod,
@@ -91,7 +90,7 @@ interface AggregatedRead {
  * previous period so the aggregation rule lives in exactly one place.
  */
 async function aggregateForRange(
-  snapshotRepo: SqliteInsightSnapshotRepository,
+  snapshotRepo: InsightSnapshotRepository,
   campaignMeta: Map<string, CampaignMeta>,
   campaignIds: string[],
   range: DashboardRange
@@ -178,9 +177,11 @@ export async function getClientDashboardData(
 ): Promise<ClientDashboardData> {
   await requireClientAccess(user, clientId, db);
 
-  const adAccountRepo = new SqliteAdAccountRepository(db);
-  const campaignRepo = new SqliteCampaignRepository(db);
-  const snapshotRepo = new SqliteInsightSnapshotRepository(db);
+  const {
+    adAccountRepository: adAccountRepo,
+    campaignRepository: campaignRepo,
+    insightSnapshotRepository: snapshotRepo,
+  } = getRepositories(db);
 
   const adAccounts = await adAccountRepo.findByClient(clientId);
 

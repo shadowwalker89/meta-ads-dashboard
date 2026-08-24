@@ -1,15 +1,11 @@
-import {
-  PackageAssignmentService,
-  SqliteClientRepository,
-  SqlitePackageRepository,
-} from "@repo/database";
+import { PackageAssignmentService } from "@repo/database";
 import type {
   AssignPackageInput,
   AssignPackageResult,
 } from "@repo/database";
 import type { Package, User } from "@repo/shared";
 import { sqliteAuditService } from "@/lib/audit";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 import type { PackageSettingsInput } from "@/lib/package-settings-input";
 
 export type { PackageSettingsInput } from "@/lib/package-settings-input";
@@ -69,7 +65,7 @@ function errorMessage(error: unknown): string {
 export async function getPackageManagementData(
   db: Db = getDatabase()
 ): Promise<Package[]> {
-  return new SqlitePackageRepository(db).listAll();
+  return getRepositories(db).packageRepository.listAll();
 }
 
 export interface ClientAssignmentEntry {
@@ -85,11 +81,11 @@ export async function getClientAssignmentData(db: Db = getDatabase()): Promise<{
   clients: ClientAssignmentEntry[];
   packages: Package[];
 }> {
-  const packageRepo = new SqlitePackageRepository(db);
-  const packages = await packageRepo.listAll();
+  const { clientRepository, packageRepository } = getRepositories(db);
+  const packages = await packageRepository.listAll();
   const packageById = new Map(packages.map((p) => [p.id, p]));
 
-  const page = await new SqliteClientRepository(db).list({ limit: 1000 });
+  const page = await clientRepository.list({ limit: 1000 });
   const clients: ClientAssignmentEntry[] = page.items.map((client) => {
     const pkg = packageById.get(client.packageId);
     return {
@@ -113,7 +109,7 @@ export async function runCreatePackage(
 ): Promise<ActionResult<Package>> {
   try {
     assertCanManagePackages(user);
-    const created = await new SqlitePackageRepository(db).create({
+    const created = await getRepositories(db).packageRepository.create({
       ...input,
       metricThresholds: {},
     });
@@ -132,7 +128,7 @@ export async function runUpdatePackage(
 ): Promise<ActionResult<Package>> {
   try {
     assertCanManagePackages(user);
-    const updated = await new SqlitePackageRepository(db).update(packageId, input);
+    const updated = await getRepositories(db).packageRepository.update(packageId, input);
     await sqliteAuditService(db).recordPackageUpdated(user, updated.id, updated);
     return { ok: true, value: updated };
   } catch (error) {
@@ -163,8 +159,10 @@ export async function runAssignPackage(
   try {
     assertCanManagePackages(user);
     const db = deps.db ?? getDatabase();
+    // PackageAssignmentService is a service with its own db-handle
+    // contract — deliberately not part of the repository bundle.
     const previousPackageId =
-      (await new SqliteClientRepository(db).findById(clientId))?.packageId ?? null;
+      (await getRepositories(db).clientRepository.findById(clientId))?.packageId ?? null;
     const service = deps.assignmentService ?? new PackageAssignmentService(db);
     const result = await service.assignPackage({
       actorRole: user.role,

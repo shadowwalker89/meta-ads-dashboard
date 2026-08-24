@@ -1,11 +1,7 @@
 import { redirect } from "next/navigation";
 import type { User, UserRole } from "@repo/shared";
-import {
-  SqliteAdminAssignmentRepository,
-  SqliteClientRepository,
-} from "@repo/database";
 import { getCurrentUser } from "@/lib/get-current-user";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 
 /**
  * Server-only. The single tenant-access boundary for every dashboard
@@ -95,14 +91,16 @@ export async function accessibleClientIds(
   user: Pick<User, "role" | "id" | "clientId">,
   db: Db = getDatabase()
 ): Promise<string[]> {
+  // Repositories come from the storage-provider seam on the SAME
+  // (possibly injected) handle — the authorization semantics below are
+  // unchanged.
+  const { adminAssignmentRepository, clientRepository } = getRepositories(db);
   if (user.role === "super_admin") {
-    const all = await new SqliteClientRepository(db).list({ limit: 1000 });
+    const all = await clientRepository.list({ limit: 1000 });
     return all.items.map((client) => client.id);
   }
   if (user.role === "admin") {
-    const assignments = await new SqliteAdminAssignmentRepository(db).findByAdmin(
-      user.id
-    );
+    const assignments = await adminAssignmentRepository.findByAdmin(user.id);
     return assignments.map((assignment) => assignment.clientId);
   }
   return user.clientId ? [user.clientId] : [];

@@ -81,9 +81,16 @@ export function getDatabase(): ReturnType<typeof openDatabase> {
  * classes directly. Service modules adopt this accessor incrementally;
  * the future Supabase swap then changes this module and the provider
  * package only — never a call site.
+ *
+ * The optional handle preserves the existing test seam: services with
+ * `db: Db = getDatabase()` pass their (possibly injected :memory:)
+ * handle straight through, so zero-arg calls and injected handles take
+ * exactly the same factory path.
  */
-export function getRepositories(): RepositoryBundle {
-  return createRepositories(getDatabase());
+export function getRepositories(
+  db: ReturnType<typeof openDatabase> = getDatabase()
+): RepositoryBundle {
+  return createRepositories(db);
 }
 
 /**

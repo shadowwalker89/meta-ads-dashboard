@@ -1,7 +1,3 @@
-import {
-  SqliteClientRepository,
-  SqlitePricingRuleRepository,
-} from "@repo/database";
 import type { PricingMetric, PricingRule, User } from "@repo/shared";
 import { PRICABLE_METRICS, selectApplicablePricingRule } from "@repo/shared";
 import { sqliteAuditService } from "@/lib/audit";
@@ -73,13 +69,13 @@ export async function runCreatePricingRule(
       throw new Error("تاریخ اعتبار نامعتبر است.");
     }
 
-    const client = await new SqliteClientRepository(db).findById(input.clientId);
+    const { clientRepository, pricingRuleRepository } = getRepositories(db);
+    const client = await clientRepository.findById(input.clientId);
     if (!client) {
       throw new Error("مشتری یافت نشد.");
     }
 
-    const repo = new SqlitePricingRuleRepository(db);
-    const created = await repo.create({
+    const created = await pricingRuleRepository.create({
       clientId: input.clientId,
       metric: input.metric,
       percentageMarkup: input.percentageMarkup,

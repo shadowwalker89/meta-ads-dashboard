@@ -1,4 +1,3 @@
-import { SqliteDashboardPreferenceRepository } from "@repo/database";
 import { sqliteAuditService } from "@/lib/audit";
 import { getDatabase, getRepositories } from "@/lib/db";
 import {
@@ -53,7 +52,7 @@ export async function runSaveClientKpiConfig(
   }
 
   const sanitized = sanitizeDashboardKpiKeys(keys);
-  const repo = new SqliteDashboardPreferenceRepository(db);
+  const repo = getRepositories(db).dashboardPreferenceRepository;
   const existing = await repo.findForClient(clientId);
   const previous = existing?.visibleMetrics ?? [];
 

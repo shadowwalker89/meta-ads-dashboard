@@ -1,4 +1,3 @@
-import { SqlitePricingRuleRepository } from "@repo/database";
 import type {
   DashboardKpiKey,
   PricingMetric,
@@ -9,7 +8,7 @@ import {
   applyPricingRule,
   selectApplicablePricingRule,
 } from "@repo/shared";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 
 export interface PricedKpi {
   metric: PricingMetric;
@@ -56,7 +55,7 @@ export async function getClientPricedKpis(
   preloadedRules?: readonly PricingRule[],
   db: ReturnType<typeof getDatabase> = getDatabase()
 ): Promise<ClientPricedKpis> {
-  const repo = new SqlitePricingRuleRepository(db);
+  const { pricingRuleRepository: repo } = getRepositories(db);
   const rules =
     preloadedRules ?? (await repo.findByClient(clientId));
 

@@ -1,4 +1,3 @@
-import { SqliteAuditLogRepository } from "@repo/database";
 import type {
   AdAccount,
   AuditLogRepository,
@@ -8,7 +7,7 @@ import type {
   PricingRule,
   User,
 } from "@repo/shared";
-import { getDatabase } from "@/lib/db";
+import { getDatabase, getRepositories } from "@/lib/db";
 
 /**
  * Server-only. The single audit write path for financially and
@@ -273,7 +272,7 @@ export class AuditService {
   }
 }
 
-/** Convenience wiring for the current SQLite storage engine. */
+/** Convenience wiring for the current storage engine (provider seam). */
 export function sqliteAuditService(db: ReturnType<typeof getDatabase>): AuditService {
-  return new AuditService(new SqliteAuditLogRepository(db));
+  return new AuditService(getRepositories(db).auditLogRepository);
 }
