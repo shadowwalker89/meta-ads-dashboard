@@ -35,17 +35,24 @@ test("provider: explicit sqlite resolves to sqlite", () => {
   );
 });
 
+test("provider: explicit supabase resolves to supabase", () => {
+  assert.equal(
+    resolveDatabaseProvider({ DATABASE_PROVIDER: "supabase" }),
+    "supabase"
+  );
+});
+
 test("provider: unsupported values fail with a concise config error", () => {
-  // supabase is deliberately NOT a supported value yet: there is no
-  // implementation, so selecting it must fail loudly instead of
-  // silently falling back to sqlite. Matching is exact — no aliases.
-  for (const value of ["supabase", "postgres", "postgresql", "SQLite"]) {
+  // "postgres"/"postgresql" are NOT aliases — the provider name matches
+  // the platform, not the engine. Matching is exact: no trimming, no
+  // case folding.
+  for (const value of ["postgres", "postgresql", "SQLite"]) {
     assert.throws(
       () => resolveDatabaseProvider({ DATABASE_PROVIDER: value }),
       (error: unknown) =>
         error instanceof Error &&
         error.message ===
-          `Unsupported DATABASE_PROVIDER '${value}'. Supported values: sqlite.`
+          `Unsupported DATABASE_PROVIDER '${value}'. Supported values: sqlite, supabase.`
     );
   }
 });
@@ -76,11 +83,18 @@ test("factory: returns the full SQLite bundle over the given handle", () => {
   db.close();
 });
 
-test("factory: an explicitly unsupported provider fails instead of falling back", () => {
+test("factory: selecting supabase returns a full bundle (DATABASE_URL required)", () => {
   const db = createTestDb();
+  // "supabase" is now a fully wired provider — Wave 2 is complete.
+  // Opening the PG handle throws if DATABASE_URL is absent (which it is
+  // in the local dev/CI environment), so we verify that the error is a
+  // connection-configuration error, NOT a "not implemented" error.
   assert.throws(
     () => createRepositories(db, { DATABASE_PROVIDER: "supabase" }),
-    /Supported values: sqlite\./
+    (error: unknown) =>
+      error instanceof Error &&
+      /DATABASE_URL/.test(error.message) &&
+      !/not available yet/.test(error.message)
   );
   db.close();
 });

@@ -1,4 +1,4 @@
-import { SqlitePackageEnforcement } from "@repo/database";
+import { PackageEnforcement } from "@repo/database";
 import type { AdAccount, Client, Package, User } from "@repo/shared";
 import { sqliteAuditService } from "@/lib/audit";
 import { getDatabase, getRepositories } from "@/lib/db";
@@ -201,10 +201,15 @@ export async function runCreateAdAccount(
   try {
     requireRole(user, "admin", "super_admin");
     await requireClientAccess(user, input.clientId, db);
-    // PackageEnforcement is a service (not a repository) and keeps its
-    // direct database-handle contract — deliberately not in the bundle.
-    await new SqlitePackageEnforcement(db).assertCanCreateAdAccount(input.clientId);
-    const created = await getRepositories(db).adAccountRepository.create(input);
+    const repos = getRepositories(db);
+    const enforcement = new PackageEnforcement(
+      repos.clientRepository,
+      repos.packageRepository,
+      repos.adAccountRepository,
+      repos.campaignRepository
+    );
+    await enforcement.assertCanCreateAdAccount(input.clientId);
+    const created = await repos.adAccountRepository.create(input);
     await sqliteAuditService(db).recordAdAccountCreated(user, created);
     return { ok: true, value: created };
   } catch (error) {

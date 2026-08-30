@@ -1,8 +1,4 @@
-import { PackageAssignmentService } from "@repo/database";
-import type {
-  AssignPackageInput,
-  AssignPackageResult,
-} from "@repo/database";
+import { createRepositoryPackageAssignmentService } from "@repo/database";
 import type { Package, User } from "@repo/shared";
 import { sqliteAuditService } from "@/lib/audit";
 import { getDatabase, getRepositories } from "@/lib/db";
@@ -139,16 +135,16 @@ export async function runUpdatePackage(
 export interface RunAssignPackageDeps {
   db?: Db;
   assignmentService?: {
-    assignPackage(input: AssignPackageInput): Promise<AssignPackageResult>;
+    assignPackage(input: { actorRole: string; clientId: string; packageId: string }): Promise<{ changed: boolean; packageId: string; packageAssignedAt: Date; pricingRulesCreated: number }>;
   };
 }
 
 /**
  * The ONLY application entry point for assigning a package to a client.
- * Authorization first, then delegation to PackageAssignmentService —
- * no repository orchestration lives here or in the UI. The service is
- * injectable so tests can prove the action path calls it (and assert
- * what it was called with).
+ * Authorization first, then delegation to the provider-neutral
+ * RepositoryPackageAssignmentService — no repository orchestration lives
+ * here or in the UI. The service is injectable so tests can prove the
+ * action path calls it (and assert what it was called with).
  */
 export async function runAssignPackage(
   user: Pick<User, "role" | "id">,
@@ -159,11 +155,16 @@ export async function runAssignPackage(
   try {
     assertCanManagePackages(user);
     const db = deps.db ?? getDatabase();
-    // PackageAssignmentService is a service with its own db-handle
-    // contract — deliberately not part of the repository bundle.
+    const repos = getRepositories(db);
     const previousPackageId =
-      (await getRepositories(db).clientRepository.findById(clientId))?.packageId ?? null;
-    const service = deps.assignmentService ?? new PackageAssignmentService(db);
+      (await repos.clientRepository.findById(clientId))?.packageId ?? null;
+    const service =
+      deps.assignmentService ??
+      createRepositoryPackageAssignmentService(
+        repos.clientRepository,
+        repos.packageRepository,
+        repos.pricingRuleRepository
+      );
     const result = await service.assignPackage({
       actorRole: user.role,
       clientId,

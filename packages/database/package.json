@@ -6,18 +6,21 @@
   "main": "src/index.ts",
   "scripts": {
     "migrate": "tsx src/migrations/migrate.ts",
+    "migrate:pg": "tsx src/migrations-pg/migrate-pg.ts",
     "seed": "tsx src/seed.ts",
     "create-test-ad-account": "tsx src/create-test-ad-account.ts",
     "create-test-data": "tsx src/create-test-data.ts",
     "demo-seed": "tsx src/demo-seed.ts",
-    "test": "tsx --test test/smoke.test.ts test/provider.test.ts test/campaign-repository.test.ts test/kpi-config.test.ts test/pricing.test.ts test/package.test.ts test/package-limits.test.ts test/collection-due.test.ts test/package-assignment.test.ts test/pricing-propagation.test.ts test/package-assignment.service.test.ts test/migrations.test.ts"
+    "test": "tsx --test test/smoke.test.ts test/provider.test.ts test/client-pg.test.ts test/migrations-pg.test.ts test/repositories-pg.test.ts test/campaign-repository.test.ts test/kpi-config.test.ts test/pricing.test.ts test/package.test.ts test/package-limits.test.ts test/collection-due.test.ts test/package-assignment.test.ts test/pricing-propagation.test.ts test/package-assignment.service.test.ts test/migrations.test.ts"
   },
   "dependencies": {
+    "@repo/shared": "workspace:*",
     "better-sqlite3": "^11.8.1",
-    "@repo/shared": "workspace:*"
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
+    "@types/pg": "^8.23.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }

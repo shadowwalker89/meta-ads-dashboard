@@ -1,5 +1,5 @@
 import { createRepositories, openDatabase, runMigrations } from "@repo/database";
-import { SqlitePackageEnforcement } from "@repo/database";
+import { PackageEnforcement } from "@repo/database";
 import { BrowserSessionManager } from "./browser-session-manager.js";
 import { PlaywrightCollector } from "./playwright-collector.js";
 import { MetricsParser } from "./metrics-parser.js";
@@ -17,12 +17,18 @@ async function main() {
   const sessionManager = new BrowserSessionManager();
   const collectorProvider = new PlaywrightCollector(sessionManager);
   const metricsParser = new MetricsParser();
-  const packageEnforcement = new SqlitePackageEnforcement(db);
 
   // The single storage-provider seam: repositories come from the
   // factory (DATABASE_PROVIDER selects the backend; sqlite is the
   // default), never from direct Sqlite* construction here.
   const repos = createRepositories(db);
+
+  const packageEnforcement = new PackageEnforcement(
+    repos.clientRepository,
+    repos.packageRepository,
+    repos.adAccountRepository,
+    repos.campaignRepository
+  );
 
   const orchestrator = new CollectorOrchestrator({
     clientRepository: repos.clientRepository,

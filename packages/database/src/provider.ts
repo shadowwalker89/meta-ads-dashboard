@@ -12,6 +12,8 @@ import type {
   PricingRuleRepository,
   UserRepository,
 } from "@repo/shared";
+import type { PostgresDatabase } from "./client-pg.js";
+import { openPostgresDatabase } from "./client-pg.js";
 import {
   SqliteAdminAssignmentRepository,
   SqliteAdAccountRepository,
@@ -25,13 +27,33 @@ import {
   SqlitePricingRuleRepository,
   SqliteUserRepository,
 } from "./repositories/index.js";
+import { PgAdminAssignmentRepository } from "./repositories/admin-assignment.repository.pg.js";
+import { PgAdAccountRepository } from "./repositories/ad-account.repository.pg.js";
+import { PgAuditLogRepository } from "./repositories/audit-log.repository.pg.js";
+import { PgCampaignRepository } from "./repositories/campaign.repository.pg.js";
+import { PgClientRepository } from "./repositories/client.repository.pg.js";
+import { PgCollectorJobRepository } from "./repositories/collector-job.repository.pg.js";
+import { PgDashboardPreferenceRepository } from "./repositories/dashboard-preference.repository.pg.js";
+import { PgInsightSnapshotRepository } from "./repositories/insight-snapshot.repository.pg.js";
+import { PgPackageRepository } from "./repositories/package.repository.pg.js";
+import { PgPricingRuleRepository } from "./repositories/pricing-rule.repository.pg.js";
+import { PgUserRepository } from "./repositories/user.repository.pg.js";
 
 /**
- * Storage backends this package can serve. Only SQLite exists today;
- * the future Supabase/PostgreSQL provider is added as a second union
- * member WITHOUT changing this type's consumers.
+ * Storage backends this package can serve. SQLite is the default;
+ * "supabase" selects the PostgreSQL provider through Supabase's
+ * session-mode connection (DATABASE_URL).
  */
-export type DatabaseProviderName = "sqlite";
+export type DatabaseProviderName = "sqlite" | "supabase";
+
+/**
+ * The handle types the provider branches understand: better-sqlite3's
+ * synchronous database and the PostgreSQL pool facade from client-pg.
+ * Purely a TYPE today — no consumer is force-migrated; future Supabase
+ * wiring (and the eventual widening of dashboard Db aliases) uses this
+ * instead of the SQLite-specific annotation.
+ */
+export type StorageHandle = Database | PostgresDatabase;
 
 /**
  * Environment shape the provider resolver reads. The index signature
@@ -64,8 +86,11 @@ export function resolveDatabaseProvider(
   if (provided === "sqlite") {
     return "sqlite";
   }
+  if (provided === "supabase") {
+    return "supabase";
+  }
   throw new Error(
-    `Unsupported DATABASE_PROVIDER '${provided}'. Supported values: sqlite.`
+    `Unsupported DATABASE_PROVIDER '${provided}'. Supported values: sqlite, supabase.`
   );
 }
 
@@ -92,11 +117,13 @@ export interface RepositoryBundle {
 /**
  * Single construction point for repositories ("the provider seam").
  *
- * Callers hand in the database handle they already own; the SQLite
- * branch constructs exactly the same Sqlite*Repository classes on that
- * handle they would have constructed themselves — no wrapper, no
- * changed semantics. The Supabase branch will live behind this same
- * call signature when Phase 3 arrives.
+ * SQLite branch: callers hand in the Database handle they already own;
+ * exactly the same Sqlite*Repository classes are constructed on it —
+ * no wrapper, no changed semantics.
+ *
+ * Supabase branch: the db parameter is ignored; the shared
+ * process-wide PostgresDatabase handle is opened lazily from
+ * DATABASE_URL. All 11 Pg*Repository implementations are wired.
  */
 export function createRepositories(
   db: Database,
@@ -104,12 +131,21 @@ export function createRepositories(
 ): RepositoryBundle {
   const provider = resolveDatabaseProvider(env);
 
-  // Only SQLite exists today. The guard keeps a future non-sqlite value
-  // a compile-time-visible branch point instead of a silent fallback.
-  if (provider !== "sqlite") {
-    throw new Error(
-      `Unsupported DATABASE_PROVIDER '${String(provider)}'. Supported values: sqlite.`
-    );
+  if (provider === "supabase") {
+    const pgDb = openPostgresDatabase();
+    return {
+      clientRepository: new PgClientRepository(pgDb),
+      adAccountRepository: new PgAdAccountRepository(pgDb),
+      campaignRepository: new PgCampaignRepository(pgDb),
+      insightSnapshotRepository: new PgInsightSnapshotRepository(pgDb),
+      collectorJobRepository: new PgCollectorJobRepository(pgDb),
+      packageRepository: new PgPackageRepository(pgDb),
+      userRepository: new PgUserRepository(pgDb),
+      adminAssignmentRepository: new PgAdminAssignmentRepository(pgDb),
+      dashboardPreferenceRepository: new PgDashboardPreferenceRepository(pgDb),
+      auditLogRepository: new PgAuditLogRepository(pgDb),
+      pricingRuleRepository: new PgPricingRuleRepository(pgDb),
+    };
   }
 
   return {
