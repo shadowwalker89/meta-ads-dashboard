@@ -55,6 +55,34 @@ export class SqliteCampaignRepository implements CampaignRepository {
     return row ? toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Campaign[]> {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => "?").join(", ");
+    const rows = this.db
+      .prepare(`SELECT * FROM campaigns WHERE id IN (${placeholders})`)
+      .all(...ids) as CampaignRow[];
+    return rows.map(toDomain);
+  }
+
+  async findByClient(clientId: string): Promise<Campaign[]> {
+    // Campaigns visible to this client:
+    // 1. Owned via AdAccount, unless there is an active assignment to a different client.
+    // 2. Explicitly assigned to this client (active).
+    const rows = this.db
+      .prepare(
+        `SELECT c.* FROM campaigns c
+         JOIN ad_accounts a ON c.ad_account_id = a.id
+         LEFT JOIN campaign_assignments ca ON c.id = ca.campaign_id AND ca.is_active = 1
+         WHERE a.client_id = ? AND (ca.client_id IS NULL OR ca.client_id = ?)
+         UNION
+         SELECT c.* FROM campaigns c
+         JOIN campaign_assignments ca ON c.id = ca.campaign_id
+         WHERE ca.client_id = ? AND ca.is_active = 1`
+      )
+      .all(clientId, clientId, clientId) as CampaignRow[];
+    return rows.map(toDomain);
+  }
+
   async create(campaign: Omit<Campaign, "id" | "createdAt">): Promise<Campaign> {
     const id = randomUUID();
     const createdAt = new Date().toISOString();

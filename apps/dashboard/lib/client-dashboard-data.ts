@@ -183,17 +183,24 @@ export async function getClientDashboardData(
     insightSnapshotRepository: snapshotRepo,
   } = getRepositories(db);
 
-  const adAccounts = await adAccountRepo.findByClient(clientId);
+  // Fetch all campaigns owned by this client (via AdAccount or explicit assignment)
+  const campaigns = await campaignRepo.findByClient(clientId);
 
+  // Build campaign meta and collect campaign IDs
   const campaignIds: string[] = [];
   const campaignMeta = new Map<string, CampaignMeta>();
-  for (const adAccount of adAccounts) {
-    const campaigns = await campaignRepo.findByAdAccount(adAccount.id);
+  if (campaigns.length > 0) {
+    // Fetch ad accounts for these campaigns to get names
+    const adAccountIds = [...new Set(campaigns.map(c => c.adAccountId))];
+    const adAccounts = await adAccountRepo.findByIds(adAccountIds);
+    const adAccountMap = new Map(adAccounts.map(a => [a.id, a]));
+
     for (const campaign of campaigns) {
+      const adAccount = adAccountMap.get(campaign.adAccountId);
       campaignMeta.set(campaign.id, {
         name: campaign.name,
-        adAccountId: adAccount.id,
-        adAccountName: adAccount.name,
+        adAccountId: campaign.adAccountId,
+        adAccountName: adAccount?.name ?? 'Unknown',
       });
       campaignIds.push(campaign.id);
     }

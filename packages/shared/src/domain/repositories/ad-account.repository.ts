@@ -2,6 +2,7 @@ import type { AdAccount } from "../entities";
 
 export interface AdAccountRepository {
   findById(id: string): Promise<AdAccount | null>;
+  findByIds(ids: string[]): Promise<AdAccount[]>;
   findByClient(clientId: string): Promise<AdAccount[]>;
   create(adAccount: Omit<AdAccount, "id" | "createdAt">): Promise<AdAccount>;
   updateStatus(id: string, status: AdAccount["status"]): Promise<AdAccount>;

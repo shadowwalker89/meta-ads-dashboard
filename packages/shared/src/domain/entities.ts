@@ -88,6 +88,15 @@ export interface AdminAssignment {
   assignedAt: Date;
 }
 
+export interface CampaignAssignment {
+  id: string;
+  campaignId: string;
+  clientId: string;
+  assignedAt: Date;
+  assignedBy: string; // userId who created the assignment
+  isActive: boolean;
+}
+
 export type AdAccountStatus = "connected" | "pending" | "error";
 export type CollectorSource = "playwright" | "meta_api";
 

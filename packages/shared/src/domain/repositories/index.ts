@@ -10,3 +10,4 @@ export * from "./dashboard-preference.repository";
 export * from "./audit-log.repository";
 export * from "./collector-job.repository";
 export * from "./pricing-rule.repository";
+export * from "./campaign-assignment.repository";

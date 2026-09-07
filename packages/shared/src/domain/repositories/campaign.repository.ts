@@ -14,6 +14,17 @@ export interface CampaignRepository {
     adAccountId: string,
     scrapedLabel: string
   ): Promise<Campaign | null>;
+  /**
+   * Find multiple campaigns by their IDs.
+   */
+  findByIds(ids: string[]): Promise<Campaign[]>;
+  /**
+   * Find all campaigns owned by a client, considering both AdAccount ownership
+   * and explicit CampaignAssignment. A campaign is owned by the client if:
+   *   - it has an active assignment to this client, OR
+   *   - it has no active assignment and its ad_account's client_id matches.
+   */
+  findByClient(clientId: string): Promise<Campaign[]>;
   create(campaign: Omit<Campaign, "id" | "createdAt">): Promise<Campaign>;
   update(
     id: string,

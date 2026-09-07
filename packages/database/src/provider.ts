@@ -3,6 +3,7 @@ import type {
   AdminAssignmentRepository,
   AdAccountRepository,
   AuditLogRepository,
+  CampaignAssignmentRepository,
   CampaignRepository,
   ClientRepository,
   CollectorJobRepository,
@@ -18,6 +19,7 @@ import {
   SqliteAdminAssignmentRepository,
   SqliteAdAccountRepository,
   SqliteAuditLogRepository,
+  SqliteCampaignAssignmentRepository,
   SqliteCampaignRepository,
   SqliteClientRepository,
   SqliteCollectorJobRepository,
@@ -38,6 +40,7 @@ import { PgInsightSnapshotRepository } from "./repositories/insight-snapshot.rep
 import { PgPackageRepository } from "./repositories/package.repository.pg.js";
 import { PgPricingRuleRepository } from "./repositories/pricing-rule.repository.pg.js";
 import { PgUserRepository } from "./repositories/user.repository.pg.js";
+import { PgCampaignAssignmentRepository } from "./repositories/campaign-assignment.repository.pg.js";
 
 /**
  * Storage backends this package can serve. SQLite is the default;
@@ -112,6 +115,7 @@ export interface RepositoryBundle {
   dashboardPreferenceRepository: DashboardPreferenceRepository;
   auditLogRepository: AuditLogRepository;
   pricingRuleRepository: PricingRuleRepository;
+  campaignAssignmentRepository: CampaignAssignmentRepository;
 }
 
 /**
@@ -145,6 +149,7 @@ export function createRepositories(
       dashboardPreferenceRepository: new PgDashboardPreferenceRepository(pgDb),
       auditLogRepository: new PgAuditLogRepository(pgDb),
       pricingRuleRepository: new PgPricingRuleRepository(pgDb),
+      campaignAssignmentRepository: new PgCampaignAssignmentRepository(pgDb),
     };
   }
 
@@ -160,5 +165,6 @@ export function createRepositories(
     dashboardPreferenceRepository: new SqliteDashboardPreferenceRepository(db),
     auditLogRepository: new SqliteAuditLogRepository(db),
     pricingRuleRepository: new SqlitePricingRuleRepository(db),
+    campaignAssignmentRepository: new SqliteCampaignAssignmentRepository(db),
   };
 }

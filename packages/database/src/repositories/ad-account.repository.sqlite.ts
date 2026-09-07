@@ -41,6 +41,15 @@ export class SqliteAdAccountRepository implements AdAccountRepository {
     return rows.map(toDomain);
   }
 
+  async findByIds(ids: string[]): Promise<AdAccount[]> {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => "?").join(", ");
+    const rows = this.db
+      .prepare(`SELECT * FROM ad_accounts WHERE id IN (${placeholders})`)
+      .all(...ids) as AdAccountRow[];
+    return rows.map(toDomain);
+  }
+
   async create(adAccount: Omit<AdAccount, "id" | "createdAt">): Promise<AdAccount> {
     const id = randomUUID();
     const createdAt = new Date().toISOString();

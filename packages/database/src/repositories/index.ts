@@ -9,3 +9,5 @@ export * from "./dashboard-preference.repository.sqlite.js";
 export * from "./audit-log.repository.sqlite.js";
 export * from "./collector-job.repository.sqlite.js";
 export * from "./pricing-rule.repository.sqlite.js";
+export * from "./campaign-assignment.repository.sqlite.js";
+export * from "./campaign-assignment.repository.pg.js";
