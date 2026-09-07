@@ -3,6 +3,7 @@ import type { AuthProviderName } from "./types";
 export interface AuthEnv {
   NODE_ENV?: string;
   AUTH_PROVIDER?: string;
+  ALLOW_MOCK_IN_PRODUCTION?: string;
 }
 
 /**
@@ -14,6 +15,12 @@ export interface AuthEnv {
  * forgeable (plain JSON, dev-only), so silently falling back to it in
  * production would let anyone authenticate — that path throws instead.
  *
+ * Demo exception: when AUTH_PROVIDER=mock and
+ * ALLOW_MOCK_IN_PRODUCTION === "true", mock is allowed in production.
+ * This is an explicit, insecure, demo-only opt-in for the SQLite VPS
+ * customer demo. It must NEVER be enabled on a real production
+ * deployment — real production must use supabase without this flag.
+ *
  * Dev/test default to the mock provider so the app runs without
  * configuration; any unknown value throws loudly.
  */
@@ -23,6 +30,9 @@ export function resolveAuthProviderName(env: AuthEnv): AuthProviderName {
   if (env.NODE_ENV === "production") {
     if (provided === "supabase") {
       return "supabase";
+    }
+    if (provided === "mock" && env.ALLOW_MOCK_IN_PRODUCTION === "true") {
+      return "mock";
     }
     throw new Error(
       "AUTH_PROVIDER must be 'supabase' in production; mock authentication is not allowed. Refusing to start with a forgeable session."
