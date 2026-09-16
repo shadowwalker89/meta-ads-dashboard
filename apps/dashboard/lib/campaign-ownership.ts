@@ -20,7 +20,7 @@ type Db = ReturnType<typeof getDatabase>;
  */
 export async function getEffectiveClientIdForCampaign(
   campaignId: string,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<string | null> {
   const { campaignAssignmentRepository, campaignRepository, adAccountRepository } =
     getRepositories(db);
@@ -51,7 +51,7 @@ export async function getEffectiveClientIdForCampaign(
 export async function resolveAndVerifyCampaignClient(
   user: Pick<User, "role" | "id" | "clientId">,
   campaignId: string,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<string> {
   const clientId = await getEffectiveClientIdForCampaign(campaignId, db);
   if (!clientId) {

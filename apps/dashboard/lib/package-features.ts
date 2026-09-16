@@ -30,7 +30,7 @@ type Db = ReturnType<typeof getDatabase>;
 export async function getClientPackageFeatures(
   user: Pick<User, "role" | "id" | "clientId">,
   clientId: string,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<PackageFeatures> {
   await requireClientAccess(user, clientId, db);
   const settings = await getClientPackageSettings(clientId, db);

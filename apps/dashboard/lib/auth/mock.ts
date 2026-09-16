@@ -1,6 +1,5 @@
-import { SqliteUserRepository } from "@repo/database";
 import type { User, UserRepository } from "@repo/shared";
-import { getDatabase } from "@/lib/db";
+import { getRepositories } from "@/lib/db";
 import {
   createNextCookiesMockSessionStore,
   type MockSessionStore,
@@ -60,7 +59,7 @@ export function createMockAuthProvider(
 ): MockAuthProvider {
   return new MockAuthProvider({
     store: deps.store ?? createNextCookiesMockSessionStore(),
-    users: deps.users ?? new SqliteUserRepository(getDatabase()),
+    users: deps.users ?? getRepositories().userRepository,
   });
 }
 
@@ -80,9 +79,7 @@ export class MockAuthUserMapper implements AuthUserMapper {
 }
 
 export function createMockAuthUserMapper(
-  users: Pick<UserRepository, "findByEmail"> = new SqliteUserRepository(
-    getDatabase()
-  )
+  users: Pick<UserRepository, "findByEmail"> = getRepositories().userRepository
 ): MockAuthUserMapper {
   return new MockAuthUserMapper(users);
 }

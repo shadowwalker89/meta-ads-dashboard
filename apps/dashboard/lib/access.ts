@@ -89,11 +89,11 @@ export function requireRole(
  */
 export async function accessibleClientIds(
   user: Pick<User, "role" | "id" | "clientId">,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<string[]> {
-  // Repositories come from the storage-provider seam on the SAME
-  // (possibly injected) handle — the authorization semantics below are
-  // unchanged.
+  // Repositories come from the storage-provider seam. Passing no handle
+  // lets the provider select the backend (SQLite or Supabase) instead
+  // of eagerly opening SQLite; an injected handle preserves tests.
   const { adminAssignmentRepository, clientRepository } = getRepositories(db);
   if (user.role === "super_admin") {
     const all = await clientRepository.list({ limit: 1000 });
@@ -114,7 +114,7 @@ export async function accessibleClientIds(
 export async function requireClientAccess(
   user: Pick<User, "role" | "id" | "clientId">,
   clientId: string,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<void> {
   if (user.role === "super_admin") {
     return;

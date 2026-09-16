@@ -1,6 +1,6 @@
 import type { PricingMetric, PricingRule, User } from "@repo/shared";
 import { PRICABLE_METRICS, selectApplicablePricingRule } from "@repo/shared";
-import { sqliteAuditService } from "@/lib/audit";
+import { getAuditService } from "@/lib/audit";
 import { getClientKpis } from "@/lib/client-kpis";
 import { getClientPricedKpis, type PricedKpi } from "@/lib/pricing";
 import { getDatabase, getRepositories } from "@/lib/db";
@@ -57,7 +57,7 @@ export interface CreatePricingRuleInput {
 export async function runCreatePricingRule(
   user: Pick<User, "role" | "id">,
   input: CreatePricingRuleInput,
-  db: ReturnType<typeof getDatabase> = getDatabase()
+  db?: ReturnType<typeof getDatabase>
 ): Promise<ActionResult<PricingRule>> {
   try {
     assertCanViewPricing(user);
@@ -84,7 +84,7 @@ export async function runCreatePricingRule(
       effectiveFrom: input.effectiveFrom,
     });
 
-    await sqliteAuditService(db).recordPricingRuleCreated(user, created);
+    await getAuditService(db).recordPricingRuleCreated(user, created);
 
     return { ok: true, value: created };
   } catch (error) {

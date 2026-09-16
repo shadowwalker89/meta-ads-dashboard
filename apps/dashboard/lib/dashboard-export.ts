@@ -5,7 +5,7 @@ import { getClientDashboardData } from "@/lib/client-dashboard-data";
 import { getClientKpiConfiguration } from "@/lib/kpi-config";
 import { getClientPackageFeatures } from "@/lib/package-features";
 import { requireClientAccess, AccessError } from "@/lib/access";
-import { sqliteAuditService } from "@/lib/audit";
+import { getAuditService } from "@/lib/audit";
 import { getDatabase } from "@/lib/db";
 import type { ReportingPeriod } from "@/lib/dashboard-period";
 import { reportingRangeForDays } from "@/lib/dashboard-period";
@@ -163,7 +163,7 @@ export async function runGetDashboardExport(
   user: Pick<User, "role" | "id" | "clientId">,
   clientId: string,
   rangeDays: ReportingPeriod,
-  db: Db = getDatabase(),
+  db?: Db,
   now: Date = new Date()
 ): Promise<DashboardExport> {
   await requireClientAccess(user, clientId, db);
@@ -180,7 +180,7 @@ export async function runGetDashboardExport(
   const csv = buildDashboardExportCsv(data, visibleKpis);
   const filename = getDashboardExportFilename(rangeDays);
 
-  await sqliteAuditService(db).recordDataExport(user, clientId, {
+  await getAuditService(db).recordDataExport(user, clientId, {
     rangeDays,
     rowCount: data.campaigns.length,
   });

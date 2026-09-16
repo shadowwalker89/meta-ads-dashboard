@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getDatabase } from "@/lib/db";
 import { requireUser } from "@/lib/access";
 import {
   runCreateAdAccount,
@@ -30,7 +29,7 @@ export async function createClient(input: {
   if (!user) {
     return { ok: false, error: "ابتدا وارد شوید." };
   }
-  const outcome = await runCreateClient(user, input, getDatabase());
+  const outcome = await runCreateClient(user, input);
   if (outcome.ok) {
     revalidatePath(CLIENTS_PAGE);
   }
@@ -51,7 +50,7 @@ export async function deactivateClient(clientId: string): Promise<
   if (!user) {
     return { ok: false, error: "ابتدا وارد شوید." };
   }
-  const outcome = await runDeactivateClient(user, clientId, getDatabase());
+  const outcome = await runDeactivateClient(user, clientId);
   if (outcome.ok) {
     revalidatePath(CLIENTS_PAGE);
     revalidatePath(`${CLIENTS_PAGE}/${clientId}`);
@@ -78,7 +77,7 @@ export async function createAdAccount(input: {
   if (!user) {
     return { ok: false, error: "ابتدا وارد شوید." };
   }
-  const outcome = await runCreateAdAccount(user, input, getDatabase());
+  const outcome = await runCreateAdAccount(user, input);
   if (outcome.ok) {
     revalidatePath(CLIENTS_PAGE);
     revalidatePath(`${CLIENTS_PAGE}/${input.clientId}`);
@@ -106,8 +105,7 @@ export async function updateAdAccountSource(
     user,
     adAccountId,
     source,
-    metaAdAccountId,
-    getDatabase()
+    metaAdAccountId
   );
   if (outcome.ok) {
     revalidatePath(CLIENTS_PAGE);
@@ -127,7 +125,7 @@ export async function updateAdAccountStatus(
   if (!user) {
     return { ok: false, error: "ابتدا وارد شوید." };
   }
-  const outcome = await runUpdateAdAccountStatus(user, adAccountId, status, getDatabase());
+  const outcome = await runUpdateAdAccountStatus(user, adAccountId, status);
   if (outcome.ok) {
     revalidatePath(CLIENTS_PAGE);
     revalidatePath(`${CLIENTS_PAGE}/${outcome.value.clientId}`);

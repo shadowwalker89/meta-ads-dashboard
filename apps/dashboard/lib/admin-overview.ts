@@ -40,7 +40,7 @@ export interface AdminOverviewData {
 export async function getAdminOverviewData(
   user: Pick<User, "role" | "id" | "clientId">,
   requestedClientId: string | null,
-  db: ReturnType<typeof getDatabase> = getDatabase()
+  db?: ReturnType<typeof getDatabase>
 ): Promise<AdminOverviewData> {
   const { clients, packages } = await getClientAdminData(user, db);
   const clientList = clients.map((client) => ({

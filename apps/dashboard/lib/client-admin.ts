@@ -1,6 +1,6 @@
 import { PackageEnforcement } from "@repo/database";
 import type { AdAccount, Client, Package, User } from "@repo/shared";
-import { sqliteAuditService } from "@/lib/audit";
+import { getAuditService } from "@/lib/audit";
 import { getDatabase, getRepositories } from "@/lib/db";
 import { accessibleClientIds, requireClientAccess, requireRole } from "@/lib/access";
 
@@ -69,7 +69,7 @@ export interface ClientAdminEntry {
 
 export async function getClientAdminData(
   user: Pick<User, "role" | "id" | "clientId">,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<{
   clients: ClientAdminEntry[];
   packages: Package[];
@@ -114,7 +114,7 @@ export interface AdAccountAdminData {
 export async function getAdAccountAdminData(
   user: Pick<User, "role" | "id" | "clientId">,
   clientId: string,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<AdAccountAdminData> {
   await requireClientAccess(user, clientId, db);
   const { adAccountRepository, clientRepository, packageRepository } =
@@ -140,7 +140,7 @@ export interface CreateClientInput {
 export async function runCreateClient(
   user: Pick<User, "role" | "id" | "clientId">,
   input: CreateClientInput,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<ActionResult<Client>> {
   try {
     assertCanCreateClients(user);
@@ -151,7 +151,7 @@ export async function runCreateClient(
       packageId: input.packageId,
       isActive: true,
     });
-    await sqliteAuditService(db).recordClientCreated(user, created);
+    await getAuditService(db).recordClientCreated(user, created);
     return { ok: true, value: created };
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
@@ -161,7 +161,7 @@ export async function runCreateClient(
 export async function runDeactivateClient(
   user: Pick<User, "role" | "id" | "clientId">,
   clientId: string,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<ActionResult<Client>> {
   try {
     assertCanCreateClients(user);
@@ -178,7 +178,7 @@ export async function runDeactivateClient(
     if (!deactivated) {
       throw new Error(`مشتری یافت نشد: ${clientId}`);
     }
-    await sqliteAuditService(db).recordClientDeactivated(user, deactivated);
+    await getAuditService(db).recordClientDeactivated(user, deactivated);
     return { ok: true, value: deactivated };
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
@@ -196,7 +196,7 @@ export interface CreateAdAccountInput {
 export async function runCreateAdAccount(
   user: Pick<User, "role" | "id" | "clientId">,
   input: CreateAdAccountInput,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<ActionResult<AdAccount>> {
   try {
     requireRole(user, "admin", "super_admin");
@@ -210,7 +210,7 @@ export async function runCreateAdAccount(
     );
     await enforcement.assertCanCreateAdAccount(input.clientId);
     const created = await repos.adAccountRepository.create(input);
-    await sqliteAuditService(db).recordAdAccountCreated(user, created);
+    await getAuditService(db).recordAdAccountCreated(user, created);
     return { ok: true, value: created };
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
@@ -222,7 +222,7 @@ export async function runUpdateAdAccountSource(
   adAccountId: string,
   source: AdAccount["source"],
   metaAdAccountId: string | null,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<ActionResult<AdAccount>> {
   try {
     requireRole(user, "admin", "super_admin");
@@ -233,7 +233,7 @@ export async function runUpdateAdAccountSource(
     }
     await requireClientAccess(user, existing.clientId, db);
     const updated = await repo.updateSource(adAccountId, source, metaAdAccountId);
-    await sqliteAuditService(db).recordAdAccountSourceUpdated(user, updated, {
+    await getAuditService(db).recordAdAccountSourceUpdated(user, updated, {
       source: existing.source,
       metaAdAccountId: existing.metaAdAccountId,
     });
@@ -247,7 +247,7 @@ export async function runUpdateAdAccountStatus(
   user: Pick<User, "role" | "id" | "clientId">,
   adAccountId: string,
   status: AdAccount["status"],
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<ActionResult<AdAccount>> {
   try {
     requireRole(user, "admin", "super_admin");
@@ -258,7 +258,7 @@ export async function runUpdateAdAccountStatus(
     }
     await requireClientAccess(user, existing.clientId, db);
     const updated = await repo.updateStatus(adAccountId, status);
-    await sqliteAuditService(db).recordAdAccountStatusUpdated(user, updated, existing.status);
+    await getAuditService(db).recordAdAccountStatusUpdated(user, updated, existing.status);
     return { ok: true, value: updated };
   } catch (error) {
     return { ok: false, error: errorMessage(error) };

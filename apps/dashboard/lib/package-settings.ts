@@ -103,7 +103,7 @@ export function resolveClientPackageSettings(
  */
 export async function getClientPackageSettings(
   clientId: string,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<EffectivePackageSettings> {
   const {
     clientRepository,

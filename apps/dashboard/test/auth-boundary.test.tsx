@@ -1,8 +1,9 @@
 import "./setup";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   openDatabase,
@@ -15,7 +16,11 @@ import {
 import type { Package, User } from "@repo/shared";
 import { resolveCurrentUser } from "@/lib/auth";
 import { resolveAuthProviderName } from "@/lib/auth/config";
-import { MockAuthProvider, MockAuthUserMapper } from "@/lib/auth/mock";
+import {
+  MockAuthProvider,
+  MockAuthUserMapper,
+  createMockAuthProvider,
+} from "@/lib/auth/mock";
 import {
   SupabaseAuthProvider,
   SupabaseAuthUserMapper,
@@ -365,4 +370,37 @@ test("auth-boundary: an orphaned identity is rejected, never authorized anonymou
     () => resolveCurrentUser({ provider, mapper }),
     /no matching application User/
   );
+});
+
+test("auth-boundary: mock provider never opens SQLite in supabase mode", () => {
+  const dir = mkdtempSync(join(tmpdir(), "mock-auth-"));
+  const dbPath = join(dir, "app.db");
+  const originalPath = process.env.DATABASE_PATH;
+  const originalProvider = process.env.DATABASE_PROVIDER;
+  try {
+    process.env.DATABASE_PATH = dbPath;
+    process.env.DATABASE_PROVIDER = "supabase";
+
+    // The default user repository now comes from the provider seam, so
+    // construction resolves the provider instead of eagerly opening
+    // SQLite. Without DATABASE_URL the PG handle refuses to open — the
+    // important part is that SQLite is never touched first.
+    assert.throws(
+      () => createMockAuthProvider({ store: new InMemoryStore() }),
+      (error: unknown) =>
+        error instanceof Error && /DATABASE_URL/.test(error.message)
+    );
+
+    assert.equal(
+      existsSync(dbPath),
+      false,
+      "SQLite database file must not be created by mock auth in supabase mode"
+    );
+  } finally {
+    if (originalPath === undefined) delete process.env.DATABASE_PATH;
+    else process.env.DATABASE_PATH = originalPath;
+    if (originalProvider === undefined) delete process.env.DATABASE_PROVIDER;
+    else process.env.DATABASE_PROVIDER = originalProvider;
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

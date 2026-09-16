@@ -5,7 +5,6 @@ import type { PricingMetric } from "@repo/shared";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { canViewPricing, runCreatePricingRule } from "@/lib/pricing-admin";
 import { requireClientAccess } from "@/lib/access";
-import { getDatabase } from "@/lib/db";
 
 export type CreatePricingRuleInput = {
   clientId: string;
@@ -60,8 +59,7 @@ export async function createPricingRule(
       fixedMarkup: input.fixedMarkup,
       minimumCustomerValue: input.minimumCustomerValue,
       effectiveFrom: new Date(input.effectiveFrom),
-    },
-    getDatabase()
+    }
   );
   if (!outcome.ok) {
     return { ok: false, error: outcome.error };

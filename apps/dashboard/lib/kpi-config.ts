@@ -1,4 +1,4 @@
-import { sqliteAuditService } from "@/lib/audit";
+import { getAuditService } from "@/lib/audit";
 import { getDatabase, getRepositories } from "@/lib/db";
 import {
   accessibleClientIds,
@@ -38,7 +38,7 @@ export async function runSaveClientKpiConfig(
   user: Pick<User, "role" | "id" | "clientId">,
   clientId: string,
   keys: readonly unknown[],
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<SaveKpiConfigResult> {
   try {
     requireRole(user, "admin", "super_admin");
@@ -64,7 +64,7 @@ export async function runSaveClientKpiConfig(
   });
 
   if (!kpiKeySetEqual(previous, sanitized)) {
-    await sqliteAuditService(db).recordKpiConfigChanged(user, clientId, sanitized, previous);
+    await getAuditService(db).recordKpiConfigChanged(user, clientId, sanitized, previous);
   }
 
   return { ok: true, savedKeys: sanitized };
@@ -85,7 +85,7 @@ export async function runSaveClientKpiConfig(
  */
 export async function getClientKpiConfiguration(
   clientId: string,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<DashboardKpiKey[]> {
   const settings = await getClientPackageSettings(clientId, db);
   return settings.visibleKpis;

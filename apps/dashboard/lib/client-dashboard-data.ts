@@ -135,7 +135,7 @@ async function priceValues(
   clientId: string,
   rawValues: Record<DashboardKpiKey, number>,
   at: Date,
-  db: Db
+  db?: Db
 ): Promise<Record<DashboardKpiKey, number>> {
   const priced = await getClientPricedKpis(clientId, rawValues, at, undefined, db);
   return mergePricedValues(rawValues, priced.byMetric);
@@ -172,7 +172,7 @@ async function priceValues(
 export async function getClientDashboardData(
   user: Pick<User, "role" | "id" | "clientId">,
   clientId: string,
-  db: Db = getDatabase(),
+  db?: Db,
   range: DashboardRange = defaultDashboardRange()
 ): Promise<ClientDashboardData> {
   await requireClientAccess(user, clientId, db);

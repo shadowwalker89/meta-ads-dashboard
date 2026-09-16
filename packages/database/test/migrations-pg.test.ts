@@ -31,7 +31,10 @@ const EXPECTED_TABLES = [
 ];
 
 test("pg migrations: discovery is deterministic (*.sql, filename order)", () => {
-  assert.deepEqual(listPostgresMigrationFiles(), ["001_init_pg.sql"]);
+  assert.deepEqual(listPostgresMigrationFiles(), [
+    "001_init_pg.sql",
+    "002_add_campaign_assignments_pg.sql",
+  ]);
 });
 
 test("pg baseline: defines every current table with approved PG types", () => {
@@ -80,7 +83,10 @@ async function resetAndMigrate(): Promise<PostgresDatabase> {
   await db.execute("DROP SCHEMA IF EXISTS public CASCADE");
   await db.execute("CREATE SCHEMA public");
   const result = await runPostgresMigrations(db);
-  assert.deepEqual(result.applied, ["001_init_pg.sql"]);
+  assert.deepEqual(result.applied, [
+    "001_init_pg.sql",
+    "002_add_campaign_assignments_pg.sql",
+  ]);
   assert.deepEqual(result.skipped, []);
   return db;
 }
@@ -120,7 +126,10 @@ test(
       );
       const result = await runPostgresMigrations(db);
       assert.deepEqual(result.applied, []);
-      assert.deepEqual(result.skipped, ["001_init_pg.sql"]);
+      assert.deepEqual(result.skipped, [
+        "001_init_pg.sql",
+        "002_add_campaign_assignments_pg.sql",
+      ]);
 
       const after = await db.query<{ name: string }>(
         "SELECT name FROM _migrations"
@@ -289,7 +298,10 @@ test(
         const ledger = await db.query<{ name: string }>(
           "SELECT name FROM _migrations"
         );
-        assert.deepEqual(ledger.map((r) => r.name), ["001_init_pg.sql"]);
+        assert.deepEqual(ledger.map((r) => r.name), [
+          "001_init_pg.sql",
+          "002_add_campaign_assignments_pg.sql",
+        ]);
         // ...and its partial work must be rolled back (no junk table).
         const junk = await db.queryOne<{ reg: string | null }>(
           "SELECT to_regclass($1)::text AS reg",

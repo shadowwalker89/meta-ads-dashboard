@@ -65,6 +65,7 @@ test("factory: returns the full SQLite bundle over the given handle", () => {
     "adAccountRepository",
     "adminAssignmentRepository",
     "auditLogRepository",
+    "campaignAssignmentRepository",
     "campaignRepository",
     "clientRepository",
     "collectorJobRepository",

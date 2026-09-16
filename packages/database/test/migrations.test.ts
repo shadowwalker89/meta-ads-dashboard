@@ -29,6 +29,7 @@ const ALL_FILES = [
   "006_add_package_settings.sql",
   "007_add_package_assigned_at.sql",
   "008_add_snapshot_reporting_window.sql",
+  "009_add_campaign_assignments.sql",
 ];
 
 function createTestDb() {

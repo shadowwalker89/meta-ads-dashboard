@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getDatabase } from "@/lib/db";
 import { requireUser } from "@/lib/access";
 import {
   runSaveClientKpiConfig,
@@ -33,7 +32,7 @@ export async function saveClientKpiConfig(
     };
   }
 
-  const outcome = await runSaveClientKpiConfig(user, clientId, keys, getDatabase());
+  const outcome = await runSaveClientKpiConfig(user, clientId, keys);
   if (outcome.ok) {
     revalidatePath("/dashboard/admin/kpi-config");
   }

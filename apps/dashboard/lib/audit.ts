@@ -272,7 +272,22 @@ export class AuditService {
   }
 }
 
-/** Convenience wiring for the current storage engine (provider seam). */
-export function sqliteAuditService(db: ReturnType<typeof getDatabase>): AuditService {
+/**
+ * Provider-neutral wiring: builds the audit service from the storage
+ * provider seam, so it works under both SQLite and Supabase. Prefer this
+ * in new code; `repositoryAuditService` remains for existing call sites and
+ * tests that pass an explicit SQLite handle.
+ */
+export function getAuditService(
+  db?: ReturnType<typeof getDatabase>
+): AuditService {
+  return new AuditService(getRepositories(db).auditLogRepository);
+}
+
+/**
+ * Explicit-handle wiring, kept for injected/test SQLite handles.
+ * Prefer `getAuditService()` for provider-neutral call sites.
+ */
+export function repositoryAuditService(db: ReturnType<typeof getDatabase>): AuditService {
   return new AuditService(getRepositories(db).auditLogRepository);
 }

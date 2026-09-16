@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import {
   createRepositories,
   openDatabase,
+  resolveDatabaseProvider,
   runMigrations,
   type RepositoryBundle,
 } from "@repo/database";
@@ -88,9 +89,12 @@ export function getDatabase(): ReturnType<typeof openDatabase> {
  * exactly the same factory path.
  */
 export function getRepositories(
-  db: ReturnType<typeof openDatabase> = getDatabase()
+  db?: ReturnType<typeof openDatabase>
 ): RepositoryBundle {
-  return createRepositories(db);
+  if (resolveDatabaseProvider(process.env) === "supabase") {
+    return createRepositories(undefined, process.env);
+  }
+  return createRepositories(db ?? getDatabase());
 }
 
 /**

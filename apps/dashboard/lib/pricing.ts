@@ -53,7 +53,7 @@ export async function getClientPricedKpis(
   rawValues: Partial<Record<DashboardKpiKey, number>>,
   at: Date = new Date(),
   preloadedRules?: readonly PricingRule[],
-  db: ReturnType<typeof getDatabase> = getDatabase()
+  db?: ReturnType<typeof getDatabase>
 ): Promise<ClientPricedKpis> {
   const { pricingRuleRepository: repo } = getRepositories(db);
   const rules =

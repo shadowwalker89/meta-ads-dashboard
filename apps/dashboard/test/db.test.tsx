@@ -1,11 +1,11 @@
 import "./setup";
 import { after, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDatabase, runMigrations } from "@repo/database";
-import { getDatabase, resetDatabaseForTests } from "@/lib/db";
+import { getDatabase, getRepositories, resetDatabaseForTests } from "@/lib/db";
 
 type Db = ReturnType<typeof openDatabase>;
 
@@ -212,6 +212,52 @@ test("existing dashboard behavior remains unchanged (repositories read migrated 
       .prepare("SELECT name FROM packages WHERE id = ?")
       .get("pkg-behavior") as { name: string };
     assert.equal(row.name, "Behavior");
+  } finally {
+    resetDatabaseForTests();
+  }
+});
+
+test("supabase provider: getRepositories() never opens or migrates SQLite", () => {
+  const path = tempDbPath();
+  const originalProvider = process.env.DATABASE_PROVIDER;
+  try {
+    setDatabasePath(path);
+    process.env.DATABASE_PROVIDER = "supabase";
+
+    // No DATABASE_URL is set in the test environment, so the PostgreSQL
+    // handle refuses to open. The important part: that failure surfaces
+    // WITHOUT touching SQLite first.
+    assert.throws(
+      () => getRepositories(),
+      (error: unknown) =>
+        error instanceof Error &&
+        /DATABASE_URL/.test(error.message) &&
+        !/not available yet/.test(error.message)
+    );
+
+    assert.equal(
+      existsSync(path),
+      false,
+      "SQLite database file must not be created in supabase mode"
+    );
+  } finally {
+    if (originalProvider === undefined) {
+      delete process.env.DATABASE_PROVIDER;
+    } else {
+      process.env.DATABASE_PROVIDER = originalProvider;
+    }
+    resetDatabaseForTests();
+  }
+});
+
+test("sqlite provider: getRepositories() still returns the SQLite bundle", () => {
+  const path = tempDbPath();
+  try {
+    setDatabasePath(path);
+    delete process.env.DATABASE_PROVIDER;
+    const repos = getRepositories();
+    assert.ok(repos.clientRepository, "SQLite bundle must be returned");
+    assert.ok(repos.campaignAssignmentRepository, "bundle stays complete");
   } finally {
     resetDatabaseForTests();
   }

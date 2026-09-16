@@ -1,6 +1,6 @@
 import { createRepositoryPackageAssignmentService } from "@repo/database";
 import type { Package, User } from "@repo/shared";
-import { sqliteAuditService } from "@/lib/audit";
+import { getAuditService } from "@/lib/audit";
 import { getDatabase, getRepositories } from "@/lib/db";
 import type { PackageSettingsInput } from "@/lib/package-settings-input";
 
@@ -59,7 +59,7 @@ function errorMessage(error: unknown): string {
 // --- Data loaders ---------------------------------------------------------
 
 export async function getPackageManagementData(
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<Package[]> {
   return getRepositories(db).packageRepository.listAll();
 }
@@ -73,7 +73,7 @@ export interface ClientAssignmentEntry {
   packageAssignedAt: Date | null;
 }
 
-export async function getClientAssignmentData(db: Db = getDatabase()): Promise<{
+export async function getClientAssignmentData(db?: Db): Promise<{
   clients: ClientAssignmentEntry[];
   packages: Package[];
 }> {
@@ -101,7 +101,7 @@ export async function getClientAssignmentData(db: Db = getDatabase()): Promise<{
 export async function runCreatePackage(
   user: Pick<User, "role" | "id">,
   input: PackageSettingsInput,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<ActionResult<Package>> {
   try {
     assertCanManagePackages(user);
@@ -109,7 +109,7 @@ export async function runCreatePackage(
       ...input,
       metricThresholds: {},
     });
-    await sqliteAuditService(db).recordPackageCreated(user, created);
+    await getAuditService(db).recordPackageCreated(user, created);
     return { ok: true, value: created };
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
@@ -120,12 +120,12 @@ export async function runUpdatePackage(
   user: Pick<User, "role" | "id">,
   packageId: string,
   input: PackageSettingsInput,
-  db: Db = getDatabase()
+  db?: Db
 ): Promise<ActionResult<Package>> {
   try {
     assertCanManagePackages(user);
     const updated = await getRepositories(db).packageRepository.update(packageId, input);
-    await sqliteAuditService(db).recordPackageUpdated(user, updated.id, updated);
+    await getAuditService(db).recordPackageUpdated(user, updated.id, updated);
     return { ok: true, value: updated };
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
@@ -154,8 +154,7 @@ export async function runAssignPackage(
 ): Promise<ActionResult<AssignActionOutput>> {
   try {
     assertCanManagePackages(user);
-    const db = deps.db ?? getDatabase();
-    const repos = getRepositories(db);
+    const repos = getRepositories(deps.db);
     const previousPackageId =
       (await repos.clientRepository.findById(clientId))?.packageId ?? null;
     const service =
@@ -171,7 +170,7 @@ export async function runAssignPackage(
       packageId,
     });
     if (result.changed) {
-      await sqliteAuditService(db).recordPackageAssigned(
+      await getAuditService(deps.db).recordPackageAssigned(
         user,
         clientId,
         previousPackageId,

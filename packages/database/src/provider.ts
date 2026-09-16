@@ -125,12 +125,12 @@ export interface RepositoryBundle {
  * exactly the same Sqlite*Repository classes are constructed on it —
  * no wrapper, no changed semantics.
  *
- * Supabase branch: the db parameter is ignored; the shared
- * process-wide PostgresDatabase handle is opened lazily from
+ * Supabase branch: the db parameter is ignored and therefore optional;
+ * the shared process-wide PostgresDatabase handle is opened lazily from
  * DATABASE_URL. All 11 Pg*Repository implementations are wired.
  */
 export function createRepositories(
-  db: Database,
+  db?: Database,
   env: DatabaseProviderEnv = process.env
 ): RepositoryBundle {
   const provider = resolveDatabaseProvider(env);
@@ -151,6 +151,12 @@ export function createRepositories(
       pricingRuleRepository: new PgPricingRuleRepository(pgDb),
       campaignAssignmentRepository: new PgCampaignAssignmentRepository(pgDb),
     };
+  }
+
+  if (!db) {
+    throw new Error(
+      "createRepositories(): a SQLite database handle is required when DATABASE_PROVIDER is 'sqlite'."
+    );
   }
 
   return {

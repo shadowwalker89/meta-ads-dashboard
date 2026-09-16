@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getDatabase } from "@/lib/db";
 import { requireClientAccess, requireUser } from "@/lib/access";
 import {
   runAssignPackage,
@@ -35,7 +34,7 @@ export async function createPackage(
   if (!user) {
     return { ok: false, error: "ابتدا وارد شوید." };
   }
-  const outcome = await runCreatePackage(user, input, getDatabase());
+  const outcome = await runCreatePackage(user, input);
   if (outcome.ok) {
     revalidatePath("/dashboard/admin/packages");
     revalidatePath("/dashboard/admin/packages/assign");
@@ -54,7 +53,7 @@ export async function updatePackage(
   if (!user) {
     return { ok: false, error: "ابتدا وارد شوید." };
   }
-  const outcome = await runUpdatePackage(user, packageId, input, getDatabase());
+  const outcome = await runUpdatePackage(user, packageId, input);
   if (outcome.ok) {
     revalidatePath("/dashboard/admin/packages");
     revalidatePath("/dashboard/admin/packages/assign");
@@ -85,9 +84,7 @@ export async function assignPackage(
   // PackageAssignmentService (assertCanManagePackages in the runner).
   await requireClientAccess(user, clientId);
 
-  const outcome = await runAssignPackage(user, clientId, packageId, {
-    db: getDatabase(),
-  });
+  const outcome = await runAssignPackage(user, clientId, packageId);
   if (outcome.ok) {
     for (const path of ASSIGN_PAGES) {
       revalidatePath(path);
