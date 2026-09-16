@@ -19,6 +19,7 @@ import {
   PgCampaignRepository,
   PgAuditLogRepository,
   PgCollectorJobRepository,
+  PgCampaignAssignmentRepository,
 } from "../src/index.js";
 import {
   bigIntColumn,
@@ -63,8 +64,16 @@ const pgTestOptions = TEST_DATABASE_URL
 
 async function freshMigratedDb(): Promise<PostgresDatabase> {
   const db = openPostgresDatabase({ connectionString: TEST_DATABASE_URL });
-  await db.execute("DROP SCHEMA IF EXISTS public CASCADE");
-  await db.execute("CREATE SCHEMA public");
+  // Drop/recreate on ONE dedicated connection so the reset is atomic and
+  // every later pooled session observes a committed `public` schema.
+  const client = await db.pool.connect();
+  try {
+    await client.query("DROP SCHEMA IF EXISTS public CASCADE");
+    await client.query("CREATE SCHEMA public");
+    await client.query("SET search_path TO public");
+  } finally {
+    client.release();
+  }
   await runPostgresMigrations(db);
   return db;
 }
@@ -429,6 +438,70 @@ test(
 );
 
 test(
+  "pg campaign assignments: active uniqueness, deactivate, client scoping",
+  pgTestOptions,
+  async () => {
+    const db = await freshMigratedDb();
+    try {
+      const ids = await seedParents(db);
+      const repo = new PgCampaignAssignmentRepository(db);
+
+      assert.equal(await repo.findActiveByCampaign(ids.campaignAId), null);
+      assert.deepEqual(await repo.findActiveByClient(ids.clientId), []);
+
+      const active = await repo.create({
+        campaignId: ids.campaignAId,
+        clientId: ids.clientId,
+        assignedAt: new Date("2026-08-01T00:00:00Z"),
+        assignedBy: ids.adminUserId,
+        isActive: true,
+      });
+      assert.match(active.id, /^[0-9a-f-]{36}$/);
+
+      const found = await repo.findActiveByCampaign(ids.campaignAId);
+      assert.ok(found);
+      assert.equal(found.id, active.id);
+      assert.equal(found.clientId, ids.clientId);
+      // TIMESTAMPTZ preserves the instant exactly.
+      assert.equal(found.assignedAt.toISOString(), "2026-08-01T00:00:00.000Z");
+      // BOOLEAN is delivered as a real boolean.
+      assert.equal(found.isActive, true);
+
+      assert.equal((await repo.findActiveByClient(ids.clientId)).length, 1);
+      assert.deepEqual(await repo.findActiveByClient(randomUUID()), []);
+
+      // A second ACTIVE assignment for the same campaign violates the
+      // partial unique index and surfaces RAW — never silently swallowed.
+      await assert.rejects(() =>
+        repo.create({
+          campaignId: ids.campaignAId,
+          clientId: ids.clientId,
+          assignedAt: new Date(),
+          assignedBy: ids.adminUserId,
+          isActive: true,
+        })
+      );
+
+      // Deactivate, then a fresh active assignment succeeds.
+      await repo.deactivate(active.id);
+      assert.equal(await repo.findActiveByCampaign(ids.campaignAId), null);
+
+      const second = await repo.create({
+        campaignId: ids.campaignAId,
+        clientId: ids.clientId,
+        assignedAt: new Date("2026-09-01T00:00:00Z"),
+        assignedBy: ids.adminUserId,
+        isActive: true,
+      });
+      assert.equal(second.isActive, true);
+      assert.equal((await repo.findActiveByCampaign(ids.campaignAId))?.id, second.id);
+    } finally {
+      await db.close();
+    }
+  }
+);
+
+test(
   "pg driver facts relied on by the conversion layer: BOOLEAN is native",
   pgTestOptions,
   async () => {
@@ -585,6 +658,9 @@ test(
     const db = await freshMigratedDb();
     try {
       const repo = new PgPackageRepository(db);
+      // The seeded package supplies the second row that the listAll
+      // assertion below expects; this test otherwise seeds nothing.
+      await seedParents(db);
 
       // validation: missing code rejects
       await assert.rejects(
@@ -693,6 +769,15 @@ test(
       assert.ok(allForClient.length >= 2);
       assert.ok(allForClient.some((a) => a.id === created.id));
 
+      // findByIds preserves the requested set; an empty list short-circuits
+      const byIds = await repo.findByIds([ids.adAccountId, created.id]);
+      assert.equal(byIds.length, 2);
+      assert.deepEqual(
+        byIds.map((a) => a.id).sort(),
+        [ids.adAccountId, created.id].sort()
+      );
+      assert.deepEqual(await repo.findByIds([]), []);
+
       // updateStatus
       const statusUpdated = await repo.updateStatus(created.id, "connected");
       assert.equal(statusUpdated.status, "connected");
@@ -753,6 +838,40 @@ test(
         await repo.findByAdAccountAndLabel(ids.adAccountId, "no-such-label"),
         null
       );
+
+      // findByIds preserves the requested set; an empty list short-circuits
+      const byIds = await repo.findByIds([ids.campaignAId, created.id]);
+      assert.equal(byIds.length, 2);
+      assert.deepEqual(await repo.findByIds([]), []);
+
+      // findByClient ownership: every campaign is visible through its
+      // AdAccount while no active assignment exists.
+      const ownedByClient = await repo.findByClient(ids.clientId);
+      assert.deepEqual(
+        ownedByClient.map((c) => c.id).sort(),
+        [ids.campaignAId, ids.campaignBId, created.id].sort()
+      );
+
+      // An active assignment to a DIFFERENT client overrides AdAccount
+      // ownership: the campaign leaves the old client's list and appears
+      // in the new client's list.
+      const otherClientId = randomUUID();
+      await db.execute(
+        `INSERT INTO clients (id, name, business_type, contact_email, package_id, is_active, created_at)
+         VALUES ($1, 'Other Client', 'seed', $2, $3, true, $4)`,
+        [otherClientId, `other-${randomUUID()}@example.com`, ids.packageId, new Date()]
+      );
+      await db.execute(
+        `INSERT INTO campaign_assignments
+           (id, campaign_id, client_id, assigned_at, assigned_by, is_active)
+         VALUES ($1, $2, $3, $4, $5, true)`,
+        [randomUUID(), ids.campaignAId, otherClientId, new Date(), ids.adminUserId]
+      );
+      const afterAssign = await repo.findByClient(ids.clientId);
+      assert.ok(!afterAssign.some((c) => c.id === ids.campaignAId));
+      assert.ok(afterAssign.some((c) => c.id === ids.campaignBId));
+      const otherOwned = await repo.findByClient(otherClientId);
+      assert.deepEqual(otherOwned.map((c) => c.id), [ids.campaignAId]);
 
       // update
       const updated = await repo.update(created.id, {

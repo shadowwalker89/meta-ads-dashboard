@@ -7,9 +7,10 @@ export {
   type PostgresMigrationResult,
 } from "./migrations-pg/migrate-pg.js";
 export * from "./repositories/index.js";
-// PostgreSQL repositories (Wave 1 + Wave 2). All 11 are now wired into
+// PostgreSQL repositories (Wave 1 + Wave 2). All 12 are now wired into
 // the supabase branch of createRepositories().
 export { PgInsightSnapshotRepository } from "./repositories/insight-snapshot.repository.pg.js";
+export { PgCampaignAssignmentRepository } from "./repositories/campaign-assignment.repository.pg.js";
 export { PgPricingRuleRepository } from "./repositories/pricing-rule.repository.pg.js";
 export { PgDashboardPreferenceRepository } from "./repositories/dashboard-preference.repository.pg.js";
 export { PgAdminAssignmentRepository } from "./repositories/admin-assignment.repository.pg.js";

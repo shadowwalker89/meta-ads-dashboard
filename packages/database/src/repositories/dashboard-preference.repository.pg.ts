@@ -6,7 +6,7 @@ import {
   type DashboardPreference,
   type DashboardPreferenceRepository,
 } from "@repo/shared";
-import { jsonbColumn, timestampColumn } from "./pg-row-convert.js";
+import { jsonbColumn, jsonbParam, timestampColumn } from "./pg-row-convert.js";
 
 interface DashboardPreferenceRow {
   id: string;
@@ -71,8 +71,9 @@ export class PgDashboardPreferenceRepository
   // Find-then-write upsert, deliberately identical to the SQLite
   // implementation: user_id/client_id can both be NULL and NULLs are
   // distinct in UNIQUE constraints in PostgreSQL too — an ON CONFLICT
-  // rewrite would change semantics, not simplify them. Plain objects/
-  // arrays go into the JSONB column without manual stringify.
+  // rewrite would change semantics, not simplify them. visible_metrics is
+  // an ARRAY, which node-postgres would bind as a PG array literal unless
+  // jsonbParam JSON-encodes it for the jsonb column.
   async save(
     pref: Omit<DashboardPreference, "id" | "updatedAt">
   ): Promise<DashboardPreference> {
@@ -92,7 +93,7 @@ export class PgDashboardPreferenceRepository
         `UPDATE dashboard_preferences
          SET visible_metrics = $1, theme = $2, updated_at = $3
          WHERE id = $4`,
-        [cleanPref.visibleMetrics, cleanPref.theme, updatedAt, existing.id]
+        [jsonbParam(cleanPref.visibleMetrics), cleanPref.theme, updatedAt, existing.id]
       );
       return { ...existing, ...cleanPref, updatedAt };
     }
@@ -105,7 +106,7 @@ export class PgDashboardPreferenceRepository
         id,
         cleanPref.userId,
         cleanPref.clientId,
-        cleanPref.visibleMetrics,
+        jsonbParam(cleanPref.visibleMetrics),
         cleanPref.theme,
         updatedAt,
       ]

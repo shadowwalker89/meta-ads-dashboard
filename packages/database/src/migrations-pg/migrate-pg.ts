@@ -39,6 +39,12 @@ export async function runPostgresMigrations(
 ): Promise<PostgresMigrationResult> {
   const client = await db.pool.connect();
   try {
+    // Pin the search_path on the dedicated migration connection. A pooled
+    // session can otherwise keep a default of `"$user", public` that no
+    // longer resolves after the schema is recreated, failing the very
+    // first CREATE with "no schema has been selected to create in".
+    await client.query("SET search_path TO public");
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS _migrations (
         name       TEXT PRIMARY KEY,

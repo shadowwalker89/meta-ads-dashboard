@@ -86,8 +86,17 @@ export function jsonbColumn<T>(value: unknown): T | null {
   return value as T;
 }
 
-/** Domain value -> jsonb parameter. Null stays null; objects pass as-is
- *  (node-postgres JSON.stringify's plain objects/arrays for jsonb). */
+/**
+ * Domain value -> jsonb parameter. Null/undefined stay semantically null;
+ * everything else is JSON-encoded as TEXT.
+ *
+ * node-postgres only JSON-encodes plain OBJECTS on its own: a JavaScript
+ * array is bound using PostgreSQL ARRAY literal syntax ({a,b}), which a
+ * jsonb column rejects with 22P02 ("invalid input syntax for type json").
+ * Encoding explicitly here makes objects AND arrays correct, and keeps the
+ * domain contract "values go over the wire unstringified" intact at the
+ * call sites — the serialization difference stays owned by this one helper.
+ */
 export function jsonbParam(value: unknown): unknown {
-  return value === undefined ? null : value;
+  return value === undefined || value === null ? null : JSON.stringify(value);
 }
