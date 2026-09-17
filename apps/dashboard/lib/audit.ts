@@ -1,6 +1,7 @@
 import type {
   AdAccount,
   AuditLogRepository,
+  CampaignAssignment,
   Client,
   DashboardKpiKey,
   Package,
@@ -44,6 +45,9 @@ export const AUDIT_ACTIONS = {
   AD_ACCOUNT_CREATED: "ad_account.created",
   AD_ACCOUNT_SOURCE_UPDATED: "ad_account.source_updated",
   AD_ACCOUNT_STATUS_UPDATED: "ad_account.status_updated",
+  CAMPAIGN_ASSIGNED: "campaign.assigned",
+  CAMPAIGN_ASSIGNMENT_CHANGED: "campaign.assignment_changed",
+  CAMPAIGN_ASSIGNMENT_DEACTIVATED: "campaign.assignment_deactivated",
   DATA_EXPORT_CREATED: "data_export.created",
 } as const;
 
@@ -51,6 +55,7 @@ export const AUDIT_TARGET_TYPES = {
   CLIENT: "client",
   PACKAGE: "package",
   AD_ACCOUNT: "ad_account",
+  CAMPAIGN: "campaign",
 } as const;
 
 /** The acting user. Only identity fields are recorded — never secrets. */
@@ -247,6 +252,53 @@ export class AuditService {
         clientId: adAccount.clientId,
         name: adAccount.name,
         previousStatus,
+      }
+    );
+  }
+
+  async recordCampaignAssigned(
+    actor: AuditActor,
+    assignment: Pick<CampaignAssignment, "campaignId" | "clientId">
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.CAMPAIGN_ASSIGNED,
+      AUDIT_TARGET_TYPES.CAMPAIGN,
+      assignment.campaignId,
+      {
+        clientId: assignment.clientId,
+      }
+    );
+  }
+
+  async recordCampaignAssignmentChanged(
+    actor: AuditActor,
+    previous: Pick<CampaignAssignment, "campaignId" | "clientId">,
+    next: Pick<CampaignAssignment, "clientId">
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.CAMPAIGN_ASSIGNMENT_CHANGED,
+      AUDIT_TARGET_TYPES.CAMPAIGN,
+      previous.campaignId,
+      {
+        previousClientId: previous.clientId,
+        clientId: next.clientId,
+      }
+    );
+  }
+
+  async recordCampaignAssignmentDeactivated(
+    actor: AuditActor,
+    assignment: Pick<CampaignAssignment, "campaignId" | "clientId">
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.CAMPAIGN_ASSIGNMENT_DEACTIVATED,
+      AUDIT_TARGET_TYPES.CAMPAIGN,
+      assignment.campaignId,
+      {
+        clientId: assignment.clientId,
       }
     );
   }

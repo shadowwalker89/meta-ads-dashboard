@@ -297,6 +297,32 @@ export interface DashboardStrings {
   advancedTitle: string;
   advancedDescription: string;
   advancedEmpty: string;
+
+  // Campaign ownership management
+  navCampaigns: string;
+  campaignOwnershipTitle: string;
+  campaignOwnershipDescription: string;
+  campaignOwnershipEmpty: string;
+  campaignOwnershipSelectClient: string;
+  campaignOwnershipNoClient: string;
+  campaignTableCampaign: string;
+  campaignTableEffectiveOwner: string;
+  campaignTableSource: string;
+  campaignTableTarget: string;
+  campaignOwnershipExplicit: string;
+  campaignOwnershipInherited: string;
+  campaignOwnershipNone: string;
+  campaignTargetSelectPlaceholder: string;
+  campaignAssignButton: string;
+  campaignAssignBusy: string;
+  campaignChangeButton: string;
+  campaignChangeBusy: string;
+  campaignDeactivateButton: string;
+  campaignDeactivateBusy: string;
+  campaignAssignedSuccess: string;
+  campaignChangedSuccess: string;
+  campaignDeactivatedSuccess: string;
+  campaignActionError: string;
 }
 
 export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
@@ -424,6 +450,32 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     featureCharts: "نمودار",
     featureDataExport: "خروجی داده",
     featureAdvancedReporting: "گزارش پیشرفته",
+
+    navCampaigns: "کمپین‌ها",
+    campaignOwnershipTitle: "مدیریت مالکیت کمپین‌ها",
+    campaignOwnershipDescription:
+      "انتساب صریح کمپین به مشتری یا بازگرداندن مالکیت طبیعی از طریق اکانت تبلیغاتی.",
+    campaignOwnershipEmpty: "کمپینی برای نمایش وجود ندارد.",
+    campaignOwnershipSelectClient: "مشتری",
+    campaignOwnershipNoClient: "هیچ مشتری‌ای در دسترس نیست.",
+    campaignTableCampaign: "کمپین",
+    campaignTableEffectiveOwner: "مالک فعلی",
+    campaignTableSource: "نوع مالکیت",
+    campaignTableTarget: "مشتری هدف",
+    campaignOwnershipExplicit: "انتساب صریح",
+    campaignOwnershipInherited: "از اکانت تبلیغاتی",
+    campaignOwnershipNone: "بدون مالک",
+    campaignTargetSelectPlaceholder: "انتخاب مشتری…",
+    campaignAssignButton: "انتساب",
+    campaignAssignBusy: "در حال انتساب…",
+    campaignChangeButton: "تغییر مشتری",
+    campaignChangeBusy: "در حال تغییر…",
+    campaignDeactivateButton: "لغو انتساب",
+    campaignDeactivateBusy: "در حال لغو…",
+    campaignAssignedSuccess: "کمپین به مشتری انتخاب‌شده منتسب شد.",
+    campaignChangedSuccess: "مالکیت کمپین تغییر کرد.",
+    campaignDeactivatedSuccess: "انتساب کمپین لغو شد.",
+    campaignActionError: "انجام عملیات ناموفق بود.",
 
     packageCurrent: "پکیج فعلی",
     packageAssignedAt: "زمان انتساب",
@@ -659,6 +711,32 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     featureCharts: "Charts",
     featureDataExport: "Data export",
     featureAdvancedReporting: "Advanced reporting",
+
+    navCampaigns: "Campaigns",
+    campaignOwnershipTitle: "Campaign ownership",
+    campaignOwnershipDescription:
+      "Explicitly assign a campaign to a client, or restore natural AdAccount ownership.",
+    campaignOwnershipEmpty: "No campaigns to show.",
+    campaignOwnershipSelectClient: "Client",
+    campaignOwnershipNoClient: "No clients available.",
+    campaignTableCampaign: "Campaign",
+    campaignTableEffectiveOwner: "Current owner",
+    campaignTableSource: "Ownership source",
+    campaignTableTarget: "Target client",
+    campaignOwnershipExplicit: "Explicit assignment",
+    campaignOwnershipInherited: "From AdAccount",
+    campaignOwnershipNone: "No owner",
+    campaignTargetSelectPlaceholder: "Select a client…",
+    campaignAssignButton: "Assign",
+    campaignAssignBusy: "Assigning…",
+    campaignChangeButton: "Change client",
+    campaignChangeBusy: "Changing…",
+    campaignDeactivateButton: "Remove assignment",
+    campaignDeactivateBusy: "Removing…",
+    campaignAssignedSuccess: "Campaign assigned to the selected client.",
+    campaignChangedSuccess: "Campaign ownership changed.",
+    campaignDeactivatedSuccess: "Campaign assignment removed.",
+    campaignActionError: "The operation could not be completed.",
 
     packageCurrent: "Current package",
     packageAssignedAt: "Assigned at",

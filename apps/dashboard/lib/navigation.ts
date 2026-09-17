@@ -4,6 +4,7 @@ import {
   BadgeDollarSign,
   Gauge,
   LayoutDashboard,
+  Megaphone,
   Package,
   SlidersHorizontal,
   Users,
@@ -42,6 +43,9 @@ export function buildNavItems(
       : []),
     ...(isManager
       ? [{ title: t.navClients, href: "/admin/clients", icon: Users }]
+      : []),
+    ...(isManager
+      ? [{ title: t.navCampaigns, href: "/admin/campaigns", icon: Megaphone }]
       : []),
     ...(isSuperAdmin
       ? [
