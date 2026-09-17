@@ -1,0 +1,18 @@
+[Unit]
+Description=Meta Ads Dashboard Collector (scheduled run)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=collector
+WorkingDirectory=/home/collector/meta-ads-dashboard/apps/collector
+ExecStart=/usr/bin/pnpm start
+Environment=NODE_ENV=production
+TimeoutStartSec=600
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=meta-collector
+
+[Install]
+WantedBy=multi-user.target
