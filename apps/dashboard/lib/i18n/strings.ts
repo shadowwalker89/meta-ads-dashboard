@@ -98,6 +98,17 @@ export interface DashboardStrings {
   adminPricingConfigSubtitle: string;
 
   // Client management
+  clientEdit: string;
+  clientSave: string;
+  clientUpdated: string;
+  clientInvalidInput: string;
+  clientInvalidPackage: string;
+  clientLoginHint: string;
+  clientSaveError: string;
+  kpiOverrideEnabled: string;
+  kpiInherited: string;
+  kpiOverrideHint: string;
+  backToClients: string;
   clientNew: string;
   clientCreateSaving: string;
   clientCreated: string;
@@ -292,6 +303,7 @@ export interface DashboardStrings {
 
   // KPI trend label
   trendVsPrevious: string;
+  kpiHelpAria: string;
 
   // Advanced reporting placeholder surface
   advancedTitle: string;
@@ -379,6 +391,18 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     adminPricingConfigSubtitle:
       "برای هر متریک، یک قانون مؤثر جدید تعریف کنید. قوانین فقط اضافه می‌شوند و هرگز تغییر یا حذف نمی‌شوند.",
 
+    clientEdit: "ویرایش مشتری",
+    clientSave: "ذخیره تغییرات",
+    clientUpdated: "تغییرات با موفقیت ذخیره شد.",
+    clientInvalidInput: "ورودی نامعتبر است؛ فیلدهای الزامی را بررسی کنید.",
+    clientInvalidPackage: "پکیج انتخابی معتبر نیست.",
+    clientLoginHint: "ورود مشتری از طریق حساب کاربری از قبل تعریف‌شده انجام می‌شود.",
+    clientSaveError: "ذخیره‌سازی ناموفق بود.",
+    kpiOverrideEnabled: "پیکربندی سفارشی (لغو پیش‌فرض پکیج)",
+    kpiInherited: "بدون لغو — پیش‌فرض پکیج اعمال می‌شود",
+    kpiOverrideHint:
+      "پیش‌فرض هر مشتری از پکیج او می‌آید. در صورت ذخیره‌ی تنظیمات سفارشی، همین انتخاب‌ها جایگزین پیش‌فرض پکیج می‌شود.",
+    backToClients: "بازگشت به مشتریان",
     clientNew: "مشتری جدید",
     clientCreateSaving: "در حال ذخیره...",
     clientCreated: "مشتری با موفقیت ایجاد شد.",
@@ -582,6 +606,7 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     period90Days: "۹۰ روز",
 
     trendVsPrevious: "نسبت به دوره قبل",
+    kpiHelpAria: "راهنمای شاخص",
 
     advancedTitle: "گزارش پیشرفته",
     advancedDescription: "گزارش‌های تحلیلی فراتر از شاخص‌های اصلی",
@@ -640,6 +665,17 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     adminPricingConfigSubtitle:
       "Define a new effective rule per metric. Rules are append-only and never changed or removed.",
 
+    clientEdit: "Edit client",
+    clientSave: "Save changes",
+    clientUpdated: "Client updated successfully.",
+    clientInvalidInput: "Check the required fields and enter a valid email address.",
+    clientInvalidPackage: "Select a valid package.",
+    clientLoginHint: "Login uses a separately provisioned user account. Editing contact details does not change login credentials.",
+    clientSaveError: "Could not save changes. Please try again.",
+    kpiOverrideEnabled: "Use a custom client KPI override",
+    kpiInherited: "Using package defaults",
+    kpiOverrideHint: "Package KPIs apply by default. Enable an override to customize this client's dashboard; disable it to return to package defaults. Admin metrics are unaffected.",
+    backToClients: "Back to clients",
     clientNew: "New client",
     clientCreateSaving: "Saving...",
     clientCreated: "Client created successfully.",
@@ -841,6 +877,7 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     period90Days: "90 days",
 
     trendVsPrevious: "vs previous period",
+    kpiHelpAria: "Metric help",
 
     advancedTitle: "Advanced Reporting",
     advancedDescription: "Analytical reports beyond the core metrics",

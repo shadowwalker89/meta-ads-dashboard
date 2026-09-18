@@ -13,23 +13,9 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 
-/**
- * Persisted preference for the collapsible desktop sidebar. Only the
- * collapsed/expanded choice is stored (localStorage) — never auth or
- * data. Absent/reading failures keep the collapsed default, which is
- * also the initial render value so server/client markup never diverge.
- */
 const SIDEBAR_STORAGE_KEY = "dashboard:sidebar-collapsed";
 
-/**
- * Desktop sidebar. Collapses to an icon rail (default) with native
- * tooltips; the bottom toggle expands it to a full menu. The width
- * transition is purely cosmetic — navigation is plain links and every
- * item keeps its accessible label in both states.
- */
-export function Sidebar({ role }: { role: UserRole }) {
-  const pathname = usePathname();
-  const { strings: t } = useDashboardLang();
+export function useSidebarState() {
   const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
@@ -37,7 +23,6 @@ export function Sidebar({ role }: { role: UserRole }) {
       const saved = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
       if (saved === "false") setCollapsed(false);
     } catch {
-      // Storage unavailable (private mode) → keep the collapsed default.
     }
   }, []);
 
@@ -47,10 +32,53 @@ export function Sidebar({ role }: { role: UserRole }) {
     try {
       window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
     } catch {
-      // Storage unavailable — the in-memory state still applies.
     }
   };
 
+  return { collapsed, toggleCollapsed };
+}
+
+export function SidebarToggle({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  const { strings: t } = useDashboardLang();
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={collapsed ? t.sidebarToggleExpand : t.sidebarToggleCollapse}
+      title={collapsed ? t.sidebarToggleExpand : t.sidebarToggleCollapse}
+      className={cn(
+        "fixed bottom-4 start-4 z-50 flex items-center gap-2 rounded-full border border-sidebar-border bg-sidebar px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 shadow-md transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:bottom-6 md:start-5",
+        !collapsed && "md:start-5"
+      )}
+    >
+      {collapsed ? (
+        <PanelLeftOpen className="size-4 shrink-0" />
+      ) : (
+        <PanelLeftClose className="size-4 shrink-0" />
+      )}
+      {!collapsed ? (
+        <span className="hidden md:inline">{t.sidebarToggleCollapse}</span>
+      ) : null}
+    </button>
+  );
+}
+
+export function Sidebar({
+  role,
+  collapsed,
+}: {
+  role: UserRole;
+  collapsed: boolean;
+}) {
+  const pathname = usePathname();
+  const { strings: t } = useDashboardLang();
   const navItems = buildNavItems(role, t);
 
   return (
@@ -109,26 +137,6 @@ export function Sidebar({ role }: { role: UserRole }) {
           );
         })}
       </nav>
-
-      <div className="border-t border-sidebar-border p-3">
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? t.sidebarToggleExpand : t.sidebarToggleCollapse}
-          title={collapsed ? t.sidebarToggleExpand : t.sidebarToggleCollapse}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-            collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2"
-          )}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="size-4.5 shrink-0" />
-          ) : (
-            <PanelLeftClose className="size-4.5 shrink-0" />
-          )}
-          {!collapsed ? t.sidebarToggleCollapse : null}
-        </button>
-      </div>
     </aside>
   );
 }

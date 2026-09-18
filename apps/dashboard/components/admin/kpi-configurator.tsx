@@ -101,6 +101,8 @@ export function KpiConfigurator({ clients, configs }: KpiConfiguratorProps) {
         </select>
       </div>
 
+      <p className="text-sm text-muted-foreground">{t.kpiOverrideHint}</p>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {KPI_GROUPS.map((group) => {
           const groupKpis = KPI_CATALOG.filter(

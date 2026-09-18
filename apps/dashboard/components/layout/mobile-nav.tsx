@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -19,11 +20,12 @@ import { Menu, Navigation } from "lucide-react";
 export function MobileNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
   const { strings: t } = useDashboardLang();
+  const [open, setOpen] = useState(false);
 
   const navItems = buildNavItems(role, t);
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           variant="ghost"
@@ -53,6 +55,7 @@ export function MobileNav({ role }: { role: UserRole }) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setOpen(false)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",

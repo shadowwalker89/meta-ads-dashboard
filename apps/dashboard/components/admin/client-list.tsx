@@ -17,10 +17,12 @@ export function ClientList({
   clients,
   canCreate,
   onCreate,
+  onEdit,
 }: {
   clients: ClientAdminEntry[];
   canCreate: boolean;
   onCreate: () => void;
+  onEdit: (clientId: string) => void;
 }) {
   const { strings: t } = useDashboardLang();
 
@@ -80,7 +82,14 @@ export function ClientList({
                 </span>
               </div>
 
-              <div className="mt-auto flex gap-2">
+<div className="mt-auto flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(client.id)}
+                >
+                  {t.clientEdit}
+                </Button>
                 <Button asChild variant="outline" size="sm" className="flex-1">
                   <Link href={`/admin/clients/${client.id}`}>
                     {t.clientManageAccounts}

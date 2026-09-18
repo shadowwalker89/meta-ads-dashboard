@@ -2,7 +2,10 @@ import "./setup";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { InsightSnapshot, Package, User } from "@repo/shared";
+import { KPI_CATALOG } from "@repo/shared";
 import {
+  SqliteDashboardPreferenceRepository,
   openDatabase,
   runMigrations,
   SqliteAdAccountRepository,
@@ -12,7 +15,6 @@ import {
   SqlitePackageRepository,
   SqliteUserRepository,
 } from "@repo/database";
-import type { InsightSnapshot, Package, User } from "@repo/shared";
 import { getAdminOverviewData } from "@/lib/admin-overview";
 import { AdminKpiCards } from "@/components/admin/admin-kpi-cards";
 import { buildNavItems } from "@/lib/navigation";
@@ -263,8 +265,48 @@ test("admin overview: a selected client yields its dashboard data and resolved K
   assert.equal(data.selectedClient?.id, clientA.id);
   assert.equal(data.dashboard?.campaignCount, 1);
   assert.equal(data.dashboard?.values.spend, 75);
-  // Resolved KPI set comes from the package default (spend + impressions).
-  assert.deepEqual(data.visibleKpis, ["spend", "impressions"]);
+  // Admin/Super Admin always see the FULL supported catalog regardless of
+  // client KPI configuration.
+  assert.deepEqual(data.visibleKpis, KPI_CATALOG.map(({ key }) => key));
+
+  db.close();
+});
+
+test("admin overview: client KPI configuration never restricts admin visibility", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db);
+  const clientA = await createClient(db, pkg.id, "Client A");
+  const account = await new SqliteAdAccountRepository(db).create({
+    clientId: clientA.id,
+    name: "Account A",
+    status: "connected",
+    source: "playwright",
+    metaAdAccountId: null,
+  });
+  const campaign = await new SqliteCampaignRepository(db).create({
+    adAccountId: account.id,
+    name: "Campaign A",
+    objective: "unknown",
+    status: "unknown",
+    scrapedLabel: "Campaign A",
+    metaCampaignId: null,
+  });
+  await new SqliteInsightSnapshotRepository(db).append(
+    snapshot(campaign.id, new Date(), { spend: 75, impressions: 500 })
+  );
+  // The client has a restrictive KPI override (spend only).
+  await new SqliteDashboardPreferenceRepository(db).save({
+    userId: null,
+    clientId: clientA.id,
+    visibleMetrics: ["spend"],
+    theme: "system",
+  });
+  const superUser = await createUser(db, "super_admin");
+
+  const data = await getAdminOverviewData(actor(superUser), clientA.id, db);
+
+  // The client's restrictive override must NOT restrict the admin.
+  assert.deepEqual(data.visibleKpis, KPI_CATALOG.map(({ key }) => key));
 
   db.close();
 });

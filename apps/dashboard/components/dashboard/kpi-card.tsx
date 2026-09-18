@@ -42,6 +42,8 @@ export function KpiCard({
       title={getKpiLabel(kpiKey, lang)}
       value={formatKpiValue(kpiKey, value, lang)}
       description={getKpiDescription(kpiKey, lang)}
+      helpText={getKpiDescription(kpiKey, lang)}
+      helpAriaLabel={t.kpiHelpAria}
       trend={trend}
       trendNa={change === null}
       icon={<Icon />}

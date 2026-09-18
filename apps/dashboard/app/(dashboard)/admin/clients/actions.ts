@@ -5,14 +5,17 @@ import { requireUser } from "@/lib/access";
 import {
   runCreateAdAccount,
   runCreateClient,
+  runUpdateClient,
+  type UpdateClientInput,
   runDeactivateClient,
   runUpdateAdAccountSource,
   runUpdateAdAccountStatus,
   type ActionResult,
 } from "@/lib/client-admin";
 import type { AdAccount } from "@repo/shared";
+import { getDashboardLanguage } from "@/lib/i18n/language";
 
-const CLIENTS_PAGE = "/dashboard/admin/clients";
+const CLIENTS_PAGE = "/admin/clients";
 
 /**
  * Creates a new client. Authorization is enforced server-side: only the
@@ -24,12 +27,13 @@ export async function createClient(input: {
   businessType: string;
   contactEmail: string;
   packageId: string;
+  isActive?: boolean;
 }): Promise<ActionResult<{ id: string; name: string }>> {
   const user = await requireUser().catch(() => null);
   if (!user) {
     return { ok: false, error: "ابتدا وارد شوید." };
   }
-  const outcome = await runCreateClient(user, input);
+  const outcome = await runCreateClient(user, input, undefined, await getDashboardLanguage());
   if (outcome.ok) {
     revalidatePath(CLIENTS_PAGE);
   }
@@ -43,6 +47,22 @@ export async function createClient(input: {
  * supported off-ramp. Deactivated clients remain in the data and their
  * ad accounts remain readable.
  */
+export async function updateClient(clientId: string, input: UpdateClientInput): Promise<ActionResult<{ id: string; name: string }>> {
+  const user = await requireUser().catch(() => null);
+  if (!user) return { ok: false, error: "ابتدا وارد شوید." };
+  const outcome = await runUpdateClient(user, clientId, input, undefined, await getDashboardLanguage());
+  if (outcome.ok) {
+    revalidatePath(CLIENTS_PAGE);
+    revalidatePath(`${CLIENTS_PAGE}/${clientId}`);
+    revalidatePath("/admin/kpi-config");
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+  }
+  return outcome.ok
+    ? { ok: true, value: { id: outcome.value.id, name: outcome.value.name } }
+    : outcome;
+}
+
 export async function deactivateClient(clientId: string): Promise<
   ActionResult<{ id: string; name: string }>
 > {

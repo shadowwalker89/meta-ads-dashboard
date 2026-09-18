@@ -22,20 +22,39 @@ export function ClientManagement({
   canCreate: boolean;
 }) {
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editingClient = editingId ? clients.find((c) => c.id === editingId) : null;
 
   return (
     <div className="flex flex-col gap-6">
       <ClientList
         clients={clients}
         canCreate={canCreate}
-        onCreate={() => setCreating(true)}
+        onCreate={() => { setEditingId(null); setCreating(true); }}
+        onEdit={(id) => { setCreating(false); setEditingId(id); }}
       />
 
       {creating && (
         <ClientForm
+          mode="create"
           packages={packages}
           onCancel={() => setCreating(false)}
           onDone={() => setCreating(false)}
+        />
+      )}
+
+      {editingClient && (
+        <ClientForm
+          mode="edit"
+          clientId={editingClient.id}
+          initialName={editingClient.name}
+          initialBusinessType={editingClient.businessType}
+          initialContactEmail={editingClient.contactEmail}
+          initialPackageId={editingClient.packageId}
+          initialIsActive={editingClient.isActive}
+          packages={packages}
+          onCancel={() => setEditingId(null)}
+          onDone={() => setEditingId(null)}
         />
       )}
     </div>

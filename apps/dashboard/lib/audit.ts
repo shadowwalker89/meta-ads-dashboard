@@ -41,6 +41,7 @@ export const AUDIT_ACTIONS = {
   PRICING_RULE_CREATED: "pricing_rule.created",
   KPI_CONFIG_CHANGED: "kpi_config.changed",
   CLIENT_CREATED: "client.created",
+  CLIENT_UPDATED: "client.updated",
   CLIENT_DEACTIVATED: "client.deactivated",
   AD_ACCOUNT_CREATED: "ad_account.created",
   AD_ACCOUNT_SOURCE_UPDATED: "ad_account.source_updated",
@@ -182,6 +183,15 @@ export class AuditService {
         packageId: client.packageId,
       }
     );
+  }
+
+  async recordClientUpdated(actor: AuditActor, client: Client, previous: Client): Promise<void> {
+    await this.append(actor, AUDIT_ACTIONS.CLIENT_UPDATED, AUDIT_TARGET_TYPES.CLIENT, client.id, {
+      name: client.name,
+      previousName: previous.name,
+      isActive: client.isActive,
+      previousIsActive: previous.isActive,
+    });
   }
 
   async recordClientDeactivated(

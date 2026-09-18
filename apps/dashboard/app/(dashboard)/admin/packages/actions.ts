@@ -12,11 +12,11 @@ import {
 } from "@/lib/package-admin";
 
 const ASSIGN_PAGES = [
-  "/dashboard/admin/packages",
-  "/dashboard/admin/packages/assign",
-  "/dashboard/admin/pricing",
-  "/dashboard/admin/pricing/config",
-  "/dashboard/admin/kpi-config",
+  "/admin/packages",
+  "/admin/packages/assign",
+  "/admin/pricing",
+  "/admin/pricing/config",
+  "/admin/kpi-config",
   "/dashboard",
 ];
 
@@ -36,8 +36,8 @@ export async function createPackage(
   }
   const outcome = await runCreatePackage(user, input);
   if (outcome.ok) {
-    revalidatePath("/dashboard/admin/packages");
-    revalidatePath("/dashboard/admin/packages/assign");
+    revalidatePath("/admin/packages");
+    revalidatePath("/admin/packages/assign");
   }
   return outcome.ok
     ? { ok: true, value: { id: outcome.value.id, name: outcome.value.name } }
@@ -55,8 +55,8 @@ export async function updatePackage(
   }
   const outcome = await runUpdatePackage(user, packageId, input);
   if (outcome.ok) {
-    revalidatePath("/dashboard/admin/packages");
-    revalidatePath("/dashboard/admin/packages/assign");
+    revalidatePath("/admin/packages");
+    revalidatePath("/admin/packages/assign");
   }
   return outcome.ok
     ? { ok: true, value: { id: outcome.value.id, name: outcome.value.name } }

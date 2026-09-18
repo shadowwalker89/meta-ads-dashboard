@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { getCurrentUser } from "@/lib/get-current-user";
 import {
   canManageClients,
@@ -38,6 +40,13 @@ export default async function AdminClientDetailPage({
 
   return (
     <div className="flex flex-col gap-5">
+      <Link
+        href="/admin/clients"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm w-fit"
+      >
+        <ArrowRight className="size-4" />
+        {t.backToClients}
+      </Link>
       <AdminPageHeader
         title={data.client.name}
         subtitle={tpl(t.adminClientDetailSubtitle, { name: data.client.name })}

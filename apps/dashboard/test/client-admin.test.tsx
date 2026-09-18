@@ -23,6 +23,7 @@ import {
   runDeactivateClient,
   runUpdateAdAccountSource,
   runUpdateAdAccountStatus,
+  runUpdateClient,
 } from "@/lib/client-admin";
 import { ClientList } from "@/components/admin/client-list";
 import { AUDIT_ACTIONS } from "@/lib/audit";
@@ -165,6 +166,7 @@ test("client admin: super_admin can create a client (audited)", async () => {
   const saved = await new SqliteClientRepository(db).findById(outcome.value.id);
   assert.equal(saved?.name, "New Client");
   assert.equal(saved?.isActive, true);
+  assert.equal(saved?.packageId, pkg.id);
 
   const { items } = await new SqliteAuditLogRepository(db).findByTarget(
     "client",
@@ -174,6 +176,24 @@ test("client admin: super_admin can create a client (audited)", async () => {
   assert.equal(items.length, 1);
   assert.equal(items[0].action, AUDIT_ACTIONS.CLIENT_CREATED);
   assert.deepEqual(items[0].metadata, { name: "New Client", packageId: pkg.id });
+
+  db.close();
+});
+
+test("client admin: create client rejects invalid package", async () => {
+  const db = createTestDb();
+  await createPackage(db, "gold", "Gold");
+  const superUser = await createUser(db, "super_admin");
+
+  const outcome = await runCreateClient(
+    actor(superUser),
+    { name: "Bad Pkg", businessType: "Retail", contactEmail: "bad@example.com", packageId: "nonexistent-pkg" },
+    db
+  );
+  assert.equal(outcome.ok, false);
+
+  const rows = (await new SqliteClientRepository(db).list({ limit: 100 })).items;
+  assert.equal(rows.length, 0);
 
   db.close();
 });
@@ -422,16 +442,165 @@ test("client admin: the client list renders clients from the database", async ()
   const { clients } = await getClientAdminData(actor(superUser), db);
   assert.equal(clients.length, 2);
 
-  const html = renderToStaticMarkup(
+const html = renderToStaticMarkup(
     <ClientList
       clients={clients}
       canCreate={true}
       onCreate={() => {}}
+      onEdit={() => {}}
     />
   );
   assert.ok(html.includes("Client A"));
   assert.ok(html.includes("Client B"));
   assert.ok(html.includes("مدیریت اکانت‌ها"));
+
+  db.close();
+});
+
+// --- 11. Client edit (super_admin) -----------------------------------------
+
+test("client admin: super_admin can edit client name, email, business type", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db, "gold", "Gold");
+  const client = await createClient(db, pkg.id, "Acme");
+  const superUser = await createUser(db, "super_admin");
+
+  const outcome = await runUpdateClient(
+    actor(superUser),
+    client.id,
+    { name: "Acme Updated", businessType: "SaaS", contactEmail: "new@acme.com", isActive: true, packageId: pkg.id },
+    db
+  );
+  assert.equal(outcome.ok, true);
+  if (!outcome.ok) return;
+
+  const saved = await new SqliteClientRepository(db).findById(client.id);
+  assert.equal(saved?.name, "Acme Updated");
+  assert.equal(saved?.businessType, "SaaS");
+  assert.equal(saved?.contactEmail, "new@acme.com");
+  assert.equal(saved?.id, client.id);
+
+  db.close();
+});
+
+test("client admin: super_admin can change client package via edit", async () => {
+  const db = createTestDb();
+  const gold = await createPackage(db, "gold", "Gold");
+  const silver = await createPackage(db, "silver", "Silver");
+  const client = await createClient(db, gold.id, "Acme");
+  const superUser = await createUser(db, "super_admin");
+
+  const outcome = await runUpdateClient(
+    actor(superUser),
+    client.id,
+    { name: "Acme", businessType: "E-commerce", contactEmail: "client@example.com", isActive: true, packageId: silver.id },
+    db
+  );
+  assert.equal(outcome.ok, true);
+
+  const saved = await new SqliteClientRepository(db).findById(client.id);
+  assert.equal(saved?.packageId, silver.id);
+
+  db.close();
+});
+
+test("client admin: super_admin can deactivate client via edit", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db, "gold", "Gold");
+  const client = await createClient(db, pkg.id, "Acme");
+  const superUser = await createUser(db, "super_admin");
+
+  const outcome = await runUpdateClient(
+    actor(superUser),
+    client.id,
+    { name: "Acme", businessType: "E-commerce", contactEmail: "client@example.com", isActive: false, packageId: pkg.id },
+    db
+  );
+  assert.equal(outcome.ok, true);
+
+  const saved = await new SqliteClientRepository(db).findById(client.id);
+  assert.equal(saved?.isActive, false);
+
+  db.close();
+});
+
+test("client admin: admin cannot change package or status via edit", async () => {
+  const db = createTestDb();
+  const gold = await createPackage(db, "gold", "Gold");
+  const silver = await createPackage(db, "silver", "Silver");
+  const client = await createClient(db, gold.id, "Assigned");
+  const admin = await createUser(db, "admin");
+  await new SqliteAdminAssignmentRepository(db).assign(admin.id, client.id);
+
+  const outcome = await runUpdateClient(
+    actor(admin),
+    client.id,
+    { name: "Assigned", businessType: "E-commerce", contactEmail: "client@example.com", isActive: true, packageId: silver.id },
+    db
+  );
+  assert.equal(outcome.ok, false);
+
+  const unchanged = await new SqliteClientRepository(db).findById(client.id);
+  assert.equal(unchanged?.packageId, gold.id);
+
+  db.close();
+});
+
+test("client admin: admin can edit basic fields of assigned client", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db, "gold", "Gold");
+  const client = await createClient(db, pkg.id, "Assigned");
+  const admin = await createUser(db, "admin");
+  await new SqliteAdminAssignmentRepository(db).assign(admin.id, client.id);
+
+  const outcome = await runUpdateClient(
+    actor(admin),
+    client.id,
+    { name: "Updated Name", businessType: "Retail", contactEmail: "updated@example.com", isActive: true, packageId: pkg.id },
+    db
+  );
+  assert.equal(outcome.ok, true);
+  if (!outcome.ok) return;
+
+  const saved = await new SqliteClientRepository(db).findById(client.id);
+  assert.equal(saved?.name, "Updated Name");
+  assert.equal(saved?.contactEmail, "updated@example.com");
+
+  db.close();
+});
+
+test("client admin: edit rejects invalid package", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db, "gold", "Gold");
+  const client = await createClient(db, pkg.id, "Acme");
+  const superUser = await createUser(db, "super_admin");
+
+  const outcome = await runUpdateClient(
+    actor(superUser),
+    client.id,
+    { name: "Acme", businessType: "E-commerce", contactEmail: "a@b.com", isActive: true, packageId: "nonexistent" },
+    db
+  );
+  assert.equal(outcome.ok, false);
+
+  db.close();
+});
+
+test("client admin: edit preserves client id", async () => {
+  const db = createTestDb();
+  const pkg = await createPackage(db, "gold", "Gold");
+  const client = await createClient(db, pkg.id, "Acme");
+  const superUser = await createUser(db, "super_admin");
+
+  const outcome = await runUpdateClient(
+    actor(superUser),
+    client.id,
+    { name: "New Name", businessType: "X", contactEmail: "x@y.com", isActive: true, packageId: pkg.id },
+    db
+  );
+  assert.equal(outcome.ok, true);
+  if (!outcome.ok) return;
+  assert.equal(outcome.value.id, client.id);
 
   db.close();
 });

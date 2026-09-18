@@ -34,7 +34,7 @@ export async function saveClientKpiConfig(
 
   const outcome = await runSaveClientKpiConfig(user, clientId, keys);
   if (outcome.ok) {
-    revalidatePath("/dashboard/admin/kpi-config");
+revalidatePath("/admin/kpi-config");
   }
   return outcome;
 }

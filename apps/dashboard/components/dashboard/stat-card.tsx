@@ -1,5 +1,11 @@
 import * as React from "react"
+import { HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip"
 
 export interface StatCardTrend {
   /**
@@ -22,6 +28,10 @@ export interface StatCardProps extends React.ComponentProps<"div"> {
   value: string | number
   /** توضیح تکمیلی زیر مقدار اصلی */
   description?: string
+  /** متن راهنمای کوتاه نمایش داده‌شده در تولتیپ */
+  helpText?: string
+  /** برچسب دسترسی برای دکمه راهنما */
+  helpAriaLabel?: string
   /** روند مثبت/منفی نسبت به دوره قبل */
   trend?: StatCardTrend
   /** مقایسه با دوره قبل در دسترس/قابل اعتماد نیست → «—» به‌جای روند */
@@ -47,6 +57,8 @@ function StatCard({
   title,
   value,
   description,
+  helpText,
+  helpAriaLabel,
   trend,
   trendNa,
   icon,
@@ -63,8 +75,24 @@ function StatCard({
       {...props}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[0.72rem] font-medium leading-4 text-muted-foreground">
+        <span className="flex items-center gap-1 truncate text-[0.72rem] font-medium leading-4 text-muted-foreground">
           {title}
+          {helpText ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={helpAriaLabel ?? title}
+                  className="inline-flex shrink-0 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:text-foreground"
+                >
+                  <HelpCircle className="size-3.5" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-48 text-center leading-relaxed">
+                {helpText}
+              </TooltipContent>
+            </Tooltip>
+          ) : null}
         </span>
         {icon ? (
           <span
