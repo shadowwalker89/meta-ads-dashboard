@@ -130,13 +130,13 @@ export interface RepositoryBundle {
  * DATABASE_URL. All 11 Pg*Repository implementations are wired.
  */
 export function createRepositories(
-  db?: Database,
+  db?: StorageHandle,
   env: DatabaseProviderEnv = process.env
 ): RepositoryBundle {
   const provider = resolveDatabaseProvider(env);
 
   if (provider === "supabase") {
-    const pgDb = openPostgresDatabase();
+    const pgDb = db && "pool" in db ? db : openPostgresDatabase();
     return {
       clientRepository: new PgClientRepository(pgDb),
       adAccountRepository: new PgAdAccountRepository(pgDb),
@@ -153,7 +153,7 @@ export function createRepositories(
     };
   }
 
-  if (!db) {
+  if (!db || "pool" in db) {
     throw new Error(
       "createRepositories(): a SQLite database handle is required when DATABASE_PROVIDER is 'sqlite'."
     );

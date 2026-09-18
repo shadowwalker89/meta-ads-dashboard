@@ -1,5 +1,5 @@
-import { createRepositories, openDatabase, runMigrations } from "@repo/database";
 import { PackageEnforcement } from "@repo/database";
+import { openCollectorStorage } from "./database.js";
 import { BrowserSessionManager } from "./browser-session-manager.js";
 import { PlaywrightCollector } from "./playwright-collector.js";
 import { MetricsParser } from "./metrics-parser.js";
@@ -7,8 +7,8 @@ import { CollectorOrchestrator } from "./collector-orchestrator.js";
 import { CollectionScheduler } from "./collection-scheduler.js";
 
 async function main() {
-  const db = openDatabase();
-  runMigrations(db);
+  const storage = await openCollectorStorage();
+  const { repositories: repos } = storage;
 
   // Every dependency is constructed here, once, and passed down
   // explicitly. Nothing is a module-level singleton — swapping
@@ -17,11 +17,6 @@ async function main() {
   const sessionManager = new BrowserSessionManager();
   const collectorProvider = new PlaywrightCollector(sessionManager);
   const metricsParser = new MetricsParser();
-
-  // The single storage-provider seam: repositories come from the
-  // factory (DATABASE_PROVIDER selects the backend; sqlite is the
-  // default), never from direct Sqlite* construction here.
-  const repos = createRepositories(db);
 
   const packageEnforcement = new PackageEnforcement(
     repos.clientRepository,
@@ -61,7 +56,7 @@ async function main() {
     );
   } finally {
     await sessionManager.shutdown();
-    db.close();
+    await storage.close();
   }
 }
 
