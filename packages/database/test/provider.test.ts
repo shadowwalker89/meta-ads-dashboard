@@ -59,7 +59,7 @@ test("provider: unsupported values fail with a concise config error", () => {
 
 test("factory: returns the full SQLite bundle over the given handle", () => {
   const db = createTestDb();
-  const repos = createRepositories(db);
+  const repos = createRepositories(db, { DATABASE_PROVIDER: "sqlite" });
 
   assert.deepEqual(Object.keys(repos).sort(), [
     "adAccountRepository",

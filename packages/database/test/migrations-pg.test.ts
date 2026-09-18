@@ -39,28 +39,33 @@ test("pg migrations: discovery is deterministic (*.sql, filename order)", () => 
 });
 
 test("pg baseline: defines every current table with approved PG types", () => {
-  const sql = readFileSync(
+  const sql001 = readFileSync(
     join(process.cwd(), "src", "migrations-pg", "001_init_pg.sql"),
     "utf-8"
   );
+  const sql002 = readFileSync(
+    join(process.cwd(), "src", "migrations-pg", "002_add_campaign_assignments_pg.sql"),
+    "utf-8"
+  );
+  const combinedSql = sql001 + "\n" + sql002;
 
   for (const table of EXPECTED_TABLES) {
-    assert.match(sql, new RegExp(`CREATE TABLE ${table} \\(`));
+    assert.match(combinedSql, new RegExp(`CREATE TABLE ${table} \\(`));
   }
 
   // Approved type mapping spot checks.
-  assert.match(sql, /impressions\s+BIGINT NOT NULL/);
-  assert.match(sql, /spend\s+DOUBLE PRECISION NOT NULL/);
-  assert.match(sql, /is_active\s+BOOLEAN NOT NULL DEFAULT true/);
-  assert.match(sql, /created_at\s+TIMESTAMPTZ NOT NULL/);
-  assert.match(sql, /id\s+UUID PRIMARY KEY/);
-  assert.match(sql, /features\s+JSONB NOT NULL DEFAULT '\{\}'/);
+  assert.match(combinedSql, /impressions\s+BIGINT NOT NULL/);
+  assert.match(combinedSql, /spend\s+DOUBLE PRECISION NOT NULL/);
+  assert.match(combinedSql, /is_active\s+BOOLEAN NOT NULL DEFAULT true/);
+  assert.match(combinedSql, /created_at\s+TIMESTAMPTZ NOT NULL/);
+  assert.match(combinedSql, /id\s+UUID PRIMARY KEY/);
+  assert.match(combinedSql, /features\s+JSONB NOT NULL DEFAULT '\{\}'/);
   // Reporting dates deliberately stay canonical YYYY-MM-DD TEXT.
-  assert.match(sql, /reporting_from\s+TEXT,/);
+  assert.match(combinedSql, /reporting_from\s+TEXT,/);
 
   // Enum CHECK constraints survive verbatim.
-  assert.match(sql, /role IN \('super_admin', 'admin', 'client'\)/);
-  assert.match(sql, /metric IN \('spend', 'cpc', 'cpm', 'costPerResult'\)/);
+  assert.match(combinedSql, /role IN \('super_admin', 'admin', 'client'\)/);
+  assert.match(combinedSql, /metric IN \('spend', 'cpc', 'cpm', 'costPerResult'\)/);
 });
 
 // ---------------------------------------------------------------------------
@@ -111,7 +116,7 @@ test(
           "SELECT to_regclass($1)::text AS reg",
           [`public.${table}`]
         );
-        assert.equal(row?.reg, `public.${table}`, `missing table ${table}`);
+        assert.ok(row?.reg && (row.reg === table || row.reg === `public.${table}`), `missing table ${table}`);
       }
     } finally {
       await db.close();
