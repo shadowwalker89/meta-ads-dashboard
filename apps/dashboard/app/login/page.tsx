@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { resolveAuthProviderName } from "@/lib/auth/config";
 import { signIn } from "./actions";
+import { SupabaseLoginForm } from "./supabase-login-form";
 
 // Request-scoped (reads process.env for the provider and submits a server
 // action); never statically prerendered.
@@ -42,9 +43,10 @@ export default function LoginPage() {
         <h1 className="text-xl font-bold">ورود به پنل متا ادز</h1>
         <p className="text-sm text-muted-foreground">
           {isMock
-            ? "این صفحه فعلاً ورود آزمایشی (Mock) است؛ در فاز بعد با Supabase Auth واقعی جایگزین می‌شود."
-            : "ورود با Supabase Auth هنوز راه‌اندازی نشده است (فاز استقرار)."}
+            ? "این صفحه فعلاً ورود آزمایشی (Mock) است."
+            : "با حساب Supabase خود وارد شوید."}
         </p>
+        {!isMock && <SupabaseLoginForm />}
         {isMock && (
           <div className="space-y-3">
             {MOCK_LOGIN_OPTIONS.map((option) => (

@@ -30,6 +30,7 @@ const ALL_FILES = [
   "007_add_package_assigned_at.sql",
   "008_add_snapshot_reporting_window.sql",
   "009_add_campaign_assignments.sql",
+  "010_add_auth_id_to_users.sql",
 ];
 
 function createTestDb() {
@@ -81,6 +82,11 @@ test("fresh database applies every migration in order and records them", () => {
   assert.ok(reportingTo, "insight_snapshots.reporting_to should exist after 008");
   assert.equal(reportingFrom.notnull, 0, "reporting_from must stay nullable");
   assert.equal(reportingTo.notnull, 0, "reporting_to must stay nullable");
+
+  const userColumns = (
+    db.prepare("PRAGMA table_info(users)").all() as { name: string }[]
+  ).map((column) => column.name);
+  assert.ok(userColumns.includes("auth_id"), "users.auth_id should exist after 010");
 
   db.close();
 });

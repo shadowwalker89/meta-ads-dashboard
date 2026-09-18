@@ -8,6 +8,7 @@ interface UserRow {
   full_name: string;
   email: string;
   client_id: string | null;
+  auth_id: string | null;
   created_at: string;
 }
 
@@ -37,6 +38,20 @@ export class SqliteUserRepository implements UserRepository {
       .prepare("SELECT * FROM users WHERE email = ?")
       .get(email) as UserRow | undefined;
     return row ? toDomain(row) : null;
+  }
+
+  async findByAuthId(authId: string): Promise<User | null> {
+    const row = this.db
+      .prepare("SELECT * FROM users WHERE auth_id = ?")
+      .get(authId) as UserRow | undefined;
+    return row ? toDomain(row) : null;
+  }
+
+  async setAuthId(id: string, authId: string | null): Promise<boolean> {
+    const result = this.db
+      .prepare("UPDATE users SET auth_id = ? WHERE id = ?")
+      .run(authId, id);
+    return result.changes === 1;
   }
 
   async create(user: Omit<User, "id" | "createdAt">): Promise<User> {

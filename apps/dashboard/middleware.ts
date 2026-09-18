@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { resolveAuthProviderName } from "@/lib/auth/config";
+import { updateSupabaseSession } from "@/lib/auth/supabase-middleware";
 import { MOCK_SESSION_COOKIE } from "@/lib/mock-auth";
 
 export function middleware(request: NextRequest) {
@@ -25,13 +26,14 @@ export function middleware(request: NextRequest) {
       const loginUrl = new URL("/login", request.url);
       return NextResponse.redirect(loginUrl);
     }
+    return NextResponse.next();
   }
 
-  // Supabase provider: real session validation/refresh lives in the
-  // deployment-phase middleware (@supabase/ssr). There is deliberately
-  // NO fake Supabase implementation here — the provider boundary stays
-  // clean and the app fails loudly until real auth is wired.
-  return NextResponse.next();
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  return updateSupabaseSession(request);
 }
 
 export const config = {

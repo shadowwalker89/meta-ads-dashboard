@@ -17,8 +17,8 @@ export type AuthProviderName = "mock" | "supabase";
  * application User row via AuthUserMapper, never from this object.
  */
 export interface AuthIdentity {
-  /** Provider-side stable id (Supabase Auth user.id long-term; seeded email in dev mock). */
   id: string;
+  email?: string;
   provider: AuthProviderName;
 }
 
@@ -27,12 +27,8 @@ export interface AuthSession {
 }
 
 export interface AuthSignInInput {
-  /**
-   * Identifier the human typed on the login page. The mock provider
-   * resolves it to a seeded account's email; the Supabase provider will
-   * use it for the real sign-in flow in the deployment phase.
-   */
   email: string;
+  password?: string;
 }
 
 /**
@@ -62,5 +58,5 @@ export interface AuthProvider {
  */
 export interface AuthUserMapper {
   readonly provider: AuthProviderName;
-  findByAuthId(authId: string): Promise<User | null>;
+  findByAuthId(authId: string, email?: string): Promise<User | null>;
 }

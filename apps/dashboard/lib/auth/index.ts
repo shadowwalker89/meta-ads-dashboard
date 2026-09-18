@@ -67,7 +67,10 @@ export async function resolveCurrentUser(
     return null;
   }
 
-  const user = await mapper.findByAuthId(session.identity.id);
+  const user = await mapper.findByAuthId(
+    session.identity.id,
+    session.identity.email
+  );
   if (!user) {
     throw new Error(
       `Authenticated identity '${session.identity.id}' has no matching application User. Refusing to authorize anonymously.`

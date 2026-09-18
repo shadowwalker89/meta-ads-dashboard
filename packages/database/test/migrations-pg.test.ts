@@ -35,6 +35,7 @@ test("pg migrations: discovery is deterministic (*.sql, filename order)", () => 
   assert.deepEqual(listPostgresMigrationFiles(), [
     "001_init_pg.sql",
     "002_add_campaign_assignments_pg.sql",
+    "003_add_auth_id_to_users_pg.sql",
   ]);
 });
 
@@ -47,7 +48,11 @@ test("pg baseline: defines every current table with approved PG types", () => {
     join(process.cwd(), "src", "migrations-pg", "002_add_campaign_assignments_pg.sql"),
     "utf-8"
   );
-  const combinedSql = sql001 + "\n" + sql002;
+  const sql003 = readFileSync(
+    join(process.cwd(), "src", "migrations-pg", "003_add_auth_id_to_users_pg.sql"),
+    "utf-8"
+  );
+  const combinedSql = sql001 + "\n" + sql002 + "\n" + sql003;
 
   for (const table of EXPECTED_TABLES) {
     assert.match(combinedSql, new RegExp(`CREATE TABLE ${table} \\(`));
@@ -92,6 +97,7 @@ async function resetAndMigrate(): Promise<PostgresDatabase> {
   assert.deepEqual(result.applied, [
     "001_init_pg.sql",
     "002_add_campaign_assignments_pg.sql",
+    "003_add_auth_id_to_users_pg.sql",
   ]);
   assert.deepEqual(result.skipped, []);
   return db;
@@ -109,6 +115,7 @@ test(
       assert.deepEqual(ledger.map((r) => r.name), [
         "001_init_pg.sql",
         "002_add_campaign_assignments_pg.sql",
+        "003_add_auth_id_to_users_pg.sql",
       ]);
 
       for (const table of [...EXPECTED_TABLES, "_migrations"]) {
@@ -138,6 +145,7 @@ test(
       assert.deepEqual(result.skipped, [
         "001_init_pg.sql",
         "002_add_campaign_assignments_pg.sql",
+        "003_add_auth_id_to_users_pg.sql",
       ]);
 
       const after = await db.query<{ name: string }>(
@@ -262,6 +270,7 @@ test(
         ["users", "created_at", "timestamp with time zone"],
         ["users", "id", "uuid"],
         ["packages", "features", "jsonb"],
+        ["users", "auth_id", "uuid"],
         ["insight_snapshots", "reporting_from", "text"],
       ];
       for (const [table, column, expected] of typeExpectations) {
@@ -310,6 +319,7 @@ test(
         assert.deepEqual(ledger.map((r) => r.name), [
           "001_init_pg.sql",
           "002_add_campaign_assignments_pg.sql",
+          "003_add_auth_id_to_users_pg.sql",
         ]);
         // ...and its partial work must be rolled back (no junk table).
         const junk = await db.queryOne<{ reg: string | null }>(

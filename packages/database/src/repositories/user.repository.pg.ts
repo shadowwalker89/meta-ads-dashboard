@@ -9,6 +9,7 @@ interface UserRow {
   full_name: string;
   email: string;
   client_id: string | null;
+  auth_id: string | null;
   created_at: unknown;
 }
 
@@ -40,6 +41,22 @@ export class PgUserRepository implements UserRepository {
       [email]
     );
     return row ? toDomain(row) : null;
+  }
+
+  async findByAuthId(authId: string): Promise<User | null> {
+    const row = await this.db.queryOne<UserRow>(
+      "SELECT * FROM users WHERE auth_id = $1",
+      [authId]
+    );
+    return row ? toDomain(row) : null;
+  }
+
+  async setAuthId(id: string, authId: string | null): Promise<boolean> {
+    const result = await this.db.query<{ id: string }>(
+      "UPDATE users SET auth_id = $1 WHERE id = $2 RETURNING id",
+      [authId, id]
+    );
+    return result.length === 1;
   }
 
   async create(user: Omit<User, "id" | "createdAt">): Promise<User> {

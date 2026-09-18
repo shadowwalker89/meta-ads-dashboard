@@ -1,6 +1,8 @@
 import "./setup";
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { NextRequest } from "next/server";
+import { middleware } from "@/middleware";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -294,6 +296,26 @@ test("auth-boundary: super_admin is unrestricted via access.ts", async () => {
   db.close();
 });
 
+test("auth-boundary: mock middleware does not require Supabase configuration", async () => {
+  const originalEnv = { ...process.env };
+  try {
+    (process.env as Record<string, string>).NODE_ENV = "test";
+    (process.env as Record<string, string>).AUTH_PROVIDER = "mock";
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_ANON_KEY;
+
+    const request = new NextRequest("http://localhost/dashboard", {
+      headers: { cookie: "mock-session=%7B%22userId%22%3A%22user%40example.com%22%7D" },
+    });
+    const response = await middleware(request);
+
+    assert.notEqual(response.status, 307);
+    assert.notEqual(response.headers.get("location"), "http://localhost/login");
+  } finally {
+    Object.assign(process.env, originalEnv);
+  }
+});
+
 test("auth-boundary: mock provider is the dev/test default", () => {
   assert.equal(resolveAuthProviderName({ NODE_ENV: "development" }), "mock");
   assert.equal(resolveAuthProviderName({ NODE_ENV: "test" }), "mock");
@@ -319,8 +341,7 @@ test("auth-boundary: production cannot silently fall back to mock", () => {
   );
 });
 
-test("auth-boundary: supabase provider is a configured, fail-loud boundary", () => {
-  // Unconfigured real auth refuses to construct (no silent fallback).
+test("auth-boundary: Supabase provider requires configuration and password", async () => {
   assert.throws(
     () => new SupabaseAuthProvider({}),
     /SUPABASE_URL \/ SUPABASE_ANON_KEY/
@@ -329,11 +350,116 @@ test("auth-boundary: supabase provider is a configured, fail-loud boundary", () 
     SUPABASE_URL: "https://example.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
   });
-  // Until the deployment phase, every real-auth method fails loudly.
-  assert.rejects(() => provider.signIn({ email: "a@b.com" }), /not wired/);
-  assert.rejects(() => provider.signOut(), /not wired/);
-  assert.rejects(() => provider.getSession(), /not wired/);
-  assert.rejects(() => new SupabaseAuthUserMapper().findByAuthId("id"), /not wired/);
+  await assert.rejects(
+    () => provider.signIn({ email: "a@b.com" }),
+    /Password is required/
+  );
+});
+
+test("auth-boundary: Supabase provider signs in, reads sessions, and signs out", async () => {
+  const calls: string[] = [];
+  const fakeClient = {
+    auth: {
+      async signInWithPassword(input: { email: string; password: string }) {
+        calls.push(`signIn:${input.email}:${input.password}`);
+        return { data: { user: { id: "supabase-user" } }, error: null };
+      },
+      async getUser() {
+        calls.push("getUser");
+        return { data: { user: { id: "supabase-user" } }, error: null };
+      },
+      async signOut() {
+        calls.push("signOut");
+        return { error: null };
+      },
+    },
+  };
+  const provider = new SupabaseAuthProvider(
+    {
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_ANON_KEY: "anon-key",
+    },
+    async () => fakeClient
+  );
+
+  assert.deepEqual(
+    await provider.signIn({ email: "user@example.com", password: "password" }),
+    { identity: { id: "supabase-user", provider: "supabase" } }
+  );
+  assert.deepEqual(await provider.getSession(), {
+    identity: { id: "supabase-user", provider: "supabase" },
+  });
+  await provider.signOut();
+  assert.deepEqual(calls, [
+    "signIn:user@example.com:password",
+    "getUser",
+    "signOut",
+  ]);
+});
+
+test("auth-boundary: Supabase sign-in errors are rejected", async () => {
+  const provider = new SupabaseAuthProvider(
+    {
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_ANON_KEY: "anon-key",
+    },
+    async () => ({
+      auth: {
+        async signInWithPassword() {
+          return {
+            data: { user: null },
+            error: { message: "Invalid login credentials" },
+          };
+        },
+        async getUser() {
+          return { data: { user: null }, error: null };
+        },
+        async signOut() {
+          return { error: null };
+        },
+      },
+    })
+  );
+
+  await assert.rejects(
+    () => provider.signIn({ email: "user@example.com", password: "wrong" }),
+    /Invalid login credentials/
+  );
+  assert.equal(await provider.getSession(), null);
+});
+
+test("auth-boundary: Supabase identity maps through auth_id", async () => {
+  const user = makeUser({ id: "app-user", email: "user@example.com" });
+  const mapper = new SupabaseAuthUserMapper({
+    async findByAuthId(authId: string) {
+      return authId === "supabase-user" ? user : null;
+    },
+    async findByEmail() {
+      return null;
+    },
+    async setAuthId() {
+      return true;
+    },
+  });
+
+  assert.equal(await mapper.findByAuthId("supabase-user"), user);
+  assert.equal(await mapper.findByAuthId("orphan"), null);
+
+  let linkedAuthId: string | null = null;
+  const linkingMapper = new SupabaseAuthUserMapper({
+    async findByAuthId() {
+      return null;
+    },
+    async findByEmail(email: string) {
+      return email === user.email ? user : null;
+    },
+    async setAuthId(_id: string, authId: string | null) {
+      linkedAuthId = authId;
+      return true;
+    },
+  });
+  assert.equal(await linkingMapper.findByAuthId("new-supabase-user", user.email), user);
+  assert.equal(linkedAuthId, "new-supabase-user");
 });
 
 test("auth-boundary: no auth session secret reaches client components", () => {

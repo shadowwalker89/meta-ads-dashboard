@@ -19,6 +19,7 @@ const EXPECTED_MIGRATIONS = [
   "007_add_package_assigned_at.sql",
   "008_add_snapshot_reporting_window.sql",
   "009_add_campaign_assignments.sql",
+  "010_add_auth_id_to_users.sql",
 ];
 
 const ORIGINAL_DATABASE_PATH = process.env.DATABASE_PATH;

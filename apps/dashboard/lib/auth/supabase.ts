@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import type { User } from "@repo/shared";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { getRepositories } from "@/lib/db";
 import type {
   AuthProvider,
   AuthSession,
@@ -11,7 +14,7 @@ export interface SupabaseAuthEnv {
   SUPABASE_ANON_KEY?: string;
 }
 
-function assertConfigured(env: SupabaseAuthEnv): void {
+function assertConfigured(env: SupabaseAuthEnv): asserts env is Required<SupabaseAuthEnv> {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
     throw new Error(
       "Supabase Auth is selected but SUPABASE_URL / SUPABASE_ANON_KEY are not set. The dashboard refuses to start with a real auth provider that is not configured."
@@ -19,58 +22,150 @@ function assertConfigured(env: SupabaseAuthEnv): void {
   }
 }
 
+type SupabaseCookie = {
+  name: string;
+  value: string;
+  options: CookieOptions;
+};
+
+type SupabaseAuthClient = {
+  auth: {
+    signInWithPassword(input: {
+      email: string;
+      password: string;
+    }): Promise<{
+      data: { user: { id: string; email?: string | null } | null };
+      error: { message: string } | null;
+    }>;
+    getUser(): Promise<{
+      data: { user: { id: string; email?: string | null } | null };
+      error: { message: string } | null;
+    }>;
+    signOut(): Promise<{ error: { message: string } | null }>;
+  };
+};
+type SupabaseClientFactory = (
+  env: SupabaseAuthEnv
+) => Promise<SupabaseAuthClient>;
+
+async function applyCookies(updated: SupabaseCookie[]): Promise<void> {
+  try {
+    const jar = await cookies();
+    for (const { name, value, options } of updated) {
+      jar.set(name, value, options);
+    }
+  } catch {
+    return;
+  }
+}
+
+export async function createSupabaseServerClient(
+  env: SupabaseAuthEnv
+): Promise<SupabaseAuthClient> {
+  assertConfigured(env);
+  return createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+    cookies: {
+      async getAll() {
+        return (await cookies())
+          .getAll()
+          .map(({ name, value }) => ({ name, value }));
+      },
+      async setAll(updated) {
+        await applyCookies(updated);
+      },
+    },
+  });
+}
+
 /**
- * Real-auth boundary for the deployment phase. This class deliberately
- * contains NO working implementation yet: Supabase Auth (session
- * refresh, @supabase/ssr middleware, magic-link / password flows) is
- * wired during the deployment phase of this project, not now. Until
- * then every method fails loudly so nothing silently pretends real auth
- * is active.
- *
- * The important contract is the shape: getSession() returns the
- * request's authenticated identity, signIn()/signOut() mutate it, and
- * only the ANON key (never the service-role key) may ever be held by
- * this browser-safe boundary.
+ * Real-auth boundary backed by Supabase email/password sign-in and the
+ * official @supabase/ssr cookie session. Tokens live exclusively in
+ * HttpOnly Supabase-managed cookies — never in the mock-session cookie
+ * and never in application-readable state.
  */
 export class SupabaseAuthProvider implements AuthProvider {
   readonly name = "supabase" as const;
 
-  constructor(env: SupabaseAuthEnv) {
+  constructor(
+    private readonly env: SupabaseAuthEnv,
+    private readonly createClient: SupabaseClientFactory = createSupabaseServerClient
+  ) {
     assertConfigured(env);
   }
 
-  async signIn(_input: AuthSignInInput): Promise<AuthSession> {
-    void _input;
-    throw new Error(
-      "Supabase signIn is not wired yet (deployment phase). Mock provider remains the active auth for dev."
-    );
+  async signIn(input: AuthSignInInput): Promise<AuthSession> {
+    if (!input.password) {
+      throw new Error("Password is required for Supabase sign-in.");
+    }
+    const supabase = await this.createClient(this.env);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: input.email,
+      password: input.password,
+    });
+    if (error || !data.user) {
+      throw new Error(error?.message ?? "Sign-in failed.");
+    }
+    return {
+      identity: {
+        id: data.user.id,
+        ...(data.user.email ? { email: data.user.email } : {}),
+        provider: "supabase",
+      },
+    };
   }
 
   async signOut(): Promise<void> {
-    throw new Error(
-      "Supabase signOut is not wired yet (deployment phase)."
-    );
+    const supabase = await this.createClient(this.env);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw new Error(`Sign-out failed: ${error.message}`);
+    }
   }
 
   async getSession(): Promise<AuthSession | null> {
-    throw new Error(
-      "Supabase getSession is not wired yet (deployment phase)."
-    );
+    const supabase = await this.createClient(this.env);
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      return null;
+    }
+    return {
+      identity: {
+        id: data.user.id,
+        ...(data.user.email ? { email: data.user.email } : {}),
+        provider: "supabase",
+      },
+    };
   }
 }
 
 /**
- * Real-auth mapper. Keyed on the Supabase Auth user.id, mapped to the
- * application User row. Not implemented until the deployment phase; the
- * shape documents that email is NOT the long-term mapping key.
+ * Bridges a Supabase Auth user.id to the application User row via the
+ * users.auth_id column. Unknown identities resolve to null so
+ * resolveCurrentUser rejects them loudly instead of authorizing
+ * anonymously.
  */
 export class SupabaseAuthUserMapper implements AuthUserMapper {
   readonly provider = "supabase" as const;
 
-  async findByAuthId(_authId: string): Promise<User | null> {
-    void _authId;
-    throw new Error(
-      "Supabase user mapping is not wired yet (deployment phase)."
-    );
+  constructor(
+    private readonly users: Pick<
+      import("@repo/shared").UserRepository,
+      "findByAuthId" | "findByEmail" | "setAuthId"
+    > = getRepositories().userRepository
+  ) {}
+
+  async findByAuthId(authId: string, email?: string): Promise<User | null> {
+    const linked = await this.users.findByAuthId(authId);
+    if (linked || !email) {
+      return linked;
+    }
+
+    const existing = await this.users.findByEmail(email);
+    if (!existing) {
+      return null;
+    }
+
+    const didLink = await this.users.setAuthId(existing.id, authId);
+    return didLink ? existing : null;
   }
 }
