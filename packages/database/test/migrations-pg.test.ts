@@ -28,6 +28,7 @@ const EXPECTED_TABLES = [
   "audit_logs",
   "collector_jobs",
   "pricing_rules",
+  "campaign_assignments",
 ];
 
 test("pg migrations: discovery is deterministic (*.sql, filename order)", () => {
