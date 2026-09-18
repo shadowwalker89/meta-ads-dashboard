@@ -100,7 +100,10 @@ test(
       const ledger = await db.query<{ name: string }>(
         "SELECT name FROM _migrations ORDER BY name"
       );
-      assert.deepEqual(ledger.map((r) => r.name), ["001_init_pg.sql"]);
+      assert.deepEqual(ledger.map((r) => r.name), [
+        "001_init_pg.sql",
+        "002_add_campaign_assignments_pg.sql",
+      ]);
 
       for (const table of [...EXPECTED_TABLES, "_migrations"]) {
         const row = await db.queryOne<{ reg: string | null }>(

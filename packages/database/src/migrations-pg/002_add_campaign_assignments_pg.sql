@@ -4,8 +4,8 @@
 
 CREATE TABLE campaign_assignments (
     id                  UUID PRIMARY KEY,
-    campaign_id         UUID NOT NULL REFERENCES campaigns(id),
-    client_id           UUID NOT NULL REFERENCES clients(id),
+    campaign_id         UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    client_id           UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     assigned_at         TIMESTAMPTZ NOT NULL,
     assigned_by         UUID NOT NULL REFERENCES users(id),
     is_active           BOOLEAN NOT NULL DEFAULT true
