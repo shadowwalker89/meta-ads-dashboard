@@ -59,6 +59,13 @@ class FakeUsers {
   async findByEmail(email: string): Promise<User | null> {
     return this.users.find((user) => user.email === email) ?? null;
   }
+  async findByNormalizedEmail(email: string): Promise<User | null> {
+    const normalized = email.trim().toLowerCase();
+    return (
+      this.users.find((user) => user.email.trim().toLowerCase() === normalized) ??
+      null
+    );
+  }
 }
 
 function makeUser(overrides: Partial<User> = {}): User {
@@ -434,7 +441,7 @@ test("auth-boundary: Supabase identity maps through auth_id", async () => {
     async findByAuthId(authId: string) {
       return authId === "supabase-user" ? user : null;
     },
-    async findByEmail() {
+    async findByNormalizedEmail() {
       return null;
     },
     async setAuthId() {
@@ -446,18 +453,21 @@ test("auth-boundary: Supabase identity maps through auth_id", async () => {
   assert.equal(await mapper.findByAuthId("orphan"), null);
 
   let linkedAuthId: string | null = null;
-  const linkingMapper = new SupabaseAuthUserMapper({
-    async findByAuthId() {
-      return null;
+  const linkingMapper = new SupabaseAuthUserMapper(
+    {
+      async findByAuthId() {
+        return null;
+      },
+      async findByNormalizedEmail(email: string) {
+        return email.trim().toLowerCase() === user.email ? user : null;
+      },
+      async setAuthId(_id: string, authId: string | null) {
+        linkedAuthId = authId;
+        return true;
+      },
     },
-    async findByEmail(email: string) {
-      return email === user.email ? user : null;
-    },
-    async setAuthId(_id: string, authId: string | null) {
-      linkedAuthId = authId;
-      return true;
-    },
-  });
+    { allowEmailFallback: true, persistEmailLink: true }
+  );
   assert.equal(await linkingMapper.findByAuthId("new-supabase-user", user.email), user);
   assert.equal(linkedAuthId, "new-supabase-user");
 });
@@ -496,6 +506,30 @@ test("auth-boundary: an orphaned identity is rejected, never authorized anonymou
     () => resolveCurrentUser({ provider, mapper }),
     /no matching application User/
   );
+});
+
+test("auth-boundary: an inactive Application User is rejected at resolution, not silently returned", async () => {
+  const users = new FakeUsers([
+    makeUser({ email: "active@example.com", isActive: true }),
+    makeUser({ email: "inactive@example.com", isActive: false }),
+  ]);
+  const store = new InMemoryStore();
+  const provider = new MockAuthProvider({ store, users });
+  const mapper = new MockAuthUserMapper(users);
+
+  // Active user continues to resolve normally.
+  await provider.signIn({ email: "active@example.com" });
+  const activeUser = await resolveCurrentUser({ provider, mapper });
+  assert.ok(activeUser);
+  assert.equal(activeUser.email, "active@example.com");
+
+  // Inactive user is rejected: resolveCurrentUser returns null, so
+  // requireUser() throws AccessError("unauthenticated") and
+  // requirePageAccess() redirects to /login. The existing access
+  // boundary handles the null result without any new error type.
+  await provider.signIn({ email: "inactive@example.com" });
+  const inactiveUser = await resolveCurrentUser({ provider, mapper });
+  assert.equal(inactiveUser, null);
 });
 
 test("auth-boundary: mock provider never opens SQLite in supabase mode", () => {

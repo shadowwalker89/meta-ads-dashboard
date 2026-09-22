@@ -71,10 +71,20 @@ export async function resolveCurrentUser(
     session.identity.id,
     session.identity.email
   );
+  if (process.env.NODE_ENV === "development") {
+    console.debug("[auth-mapping] session mapping", {
+      provider: session.identity.provider,
+      userId: session.identity.id,
+      mapped: Boolean(user),
+    });
+  }
   if (!user) {
     throw new Error(
       `Authenticated identity '${session.identity.id}' has no matching application User. Refusing to authorize anonymously.`
     );
+  }
+  if (user.isActive === false) {
+    return null;
   }
   return user;
 }
