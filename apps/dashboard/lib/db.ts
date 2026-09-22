@@ -3,8 +3,10 @@ import { dirname, join } from "node:path";
 import {
   createRepositories,
   openDatabase,
+  openPostgresDatabase,
   resolveDatabaseProvider,
   runMigrations,
+  runPostgresMigrations,
   type RepositoryBundle,
 } from "@repo/database";
 
@@ -97,6 +99,31 @@ export function getRepositories(
   return createRepositories(db ?? getDatabase());
 }
 
+// The async PostgreSQL half of startup. SQLite is handled synchronously
+// inside getDatabase(); this covers the supabase branch, whose migration
+// runner (pg) is async and therefore cannot live in getRepositories().
+// Call it ONCE from instrumentation.ts register() so the schema is
+// guaranteed before the first database-dependent request. A failure is
+// not cached: register() re-runs on the next process start and fails
+// loudly again.
+let postgresReady: Promise<void> | null = null;
+
+export function prepareDatabase(): Promise<void> {
+  if (resolveDatabaseProvider(process.env) !== "supabase") {
+    return Promise.resolve();
+  }
+  if (!postgresReady) {
+    postgresReady = (async () => {
+      const pg = openPostgresDatabase();
+      await runPostgresMigrations(pg);
+    })().catch((error) => {
+      postgresReady = null;
+      throw error;
+    });
+  }
+  return postgresReady;
+}
+
 /**
  * Test-only helper: closes and clears the cached singleton so a test can
  * exercise a fresh initialization against a different DATABASE_PATH.
@@ -106,4 +133,5 @@ export function resetDatabaseForTests(): void {
   db?.close();
   db = null;
   initializing = false;
+  postgresReady = null;
 }

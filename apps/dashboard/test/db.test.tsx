@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDatabase, runMigrations } from "@repo/database";
-import { getDatabase, getRepositories, resetDatabaseForTests } from "@/lib/db";
+import { getDatabase, getRepositories, prepareDatabase, resetDatabaseForTests } from "@/lib/db";
 
 type Db = ReturnType<typeof openDatabase>;
 
@@ -247,6 +247,67 @@ test("supabase provider: getRepositories() never opens or migrates SQLite", () =
       delete process.env.DATABASE_PROVIDER;
     } else {
       process.env.DATABASE_PROVIDER = originalProvider;
+    }
+    resetDatabaseForTests();
+  }
+});
+
+test("prepareDatabase(): sqlite mode is a no-op", async () => {
+  const path = tempDbPath();
+  try {
+    setDatabasePath(path);
+    delete process.env.DATABASE_PROVIDER;
+
+    await prepareDatabase();
+
+    assert.equal(
+      existsSync(path),
+      false,
+      "prepareDatabase() must not open SQLite itself"
+    );
+    await prepareDatabase();
+    assert.equal(existsSync(path), false);
+  } finally {
+    resetDatabaseForTests();
+  }
+});
+
+test("prepareDatabase(): supabase mode fails loudly without DATABASE_URL and does not touch SQLite", async () => {
+  const path = tempDbPath();
+  const originalProvider = process.env.DATABASE_PROVIDER;
+  const originalUrl = process.env.DATABASE_URL;
+  try {
+    setDatabasePath(path);
+    process.env.DATABASE_PROVIDER = "supabase";
+    if (originalUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    }
+
+    // No DATABASE_URL: the PostgreSQL handle cannot open, so startup
+    // fails loudly before any request could be served. SQLite must not
+    // be opened as a fallback.
+    await assert.rejects(
+      () => prepareDatabase(),
+      /DATABASE_URL/
+    );
+    assert.equal(
+      existsSync(path),
+      false,
+      "SQLite database file must not be created in supabase mode"
+    );
+
+    // A failed run is not cached: a retry attempts (and fails) again.
+    await assert.rejects(() => prepareDatabase(), /DATABASE_URL/);
+  } finally {
+    if (originalProvider === undefined) {
+      delete process.env.DATABASE_PROVIDER;
+    } else {
+      process.env.DATABASE_PROVIDER = originalProvider;
+    }
+    if (originalUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = originalUrl;
     }
     resetDatabaseForTests();
   }

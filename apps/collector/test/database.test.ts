@@ -25,6 +25,7 @@ function makeDependencies(overrides: Partial<CollectorStorageDependencies> = {})
     sqliteOpened: 0,
     sqliteMigrated: 0,
     postgresOpened: 0,
+    postgresMigrated: 0,
     repositoriesCreated: 0,
     sqliteClosed: 0,
     postgresClosed: 0,
@@ -35,6 +36,7 @@ function makeDependencies(overrides: Partial<CollectorStorageDependencies> = {})
     openSqlite: () => { calls.sqliteOpened += 1; return sqlite; },
     runSqliteMigrations: () => { calls.sqliteMigrated += 1; },
     openPostgres: () => { calls.postgresOpened += 1; return postgres; },
+    runPostgresMigrations: async () => { calls.postgresMigrated += 1; },
     createRepositories: () => { calls.repositoriesCreated += 1; return {} as RepositoryBundle; },
   };
   return { calls, dependencies: { ...base, ...overrides } };
@@ -64,6 +66,7 @@ test("collector storage: supabase skips sqlite and closes postgres", async () =>
   assert.equal(calls.sqliteOpened, 0);
   assert.equal(calls.sqliteMigrated, 0);
   assert.equal(calls.postgresOpened, 1);
+  assert.equal(calls.postgresMigrated, 1);
   assert.equal(calls.repositoriesCreated, 1);
 
   await storage.close();
@@ -83,4 +86,19 @@ test("collector storage: failed repository construction closes the selected hand
   );
   assert.equal(calls.sqliteClosed, 1);
   assert.equal(calls.postgresClosed, 0);
+});
+
+test("collector storage: failed postgres migration closes the postgres handle", async () => {
+  const { calls, dependencies } = makeDependencies({
+    runPostgresMigrations: async () => { throw new Error("migration failed"); },
+  });
+
+  await assert.rejects(
+    () => openCollectorStorage({ DATABASE_PROVIDER: "supabase" }, dependencies),
+    /migration failed/
+  );
+  assert.equal(calls.sqliteOpened, 0);
+  assert.equal(calls.postgresOpened, 1);
+  assert.equal(calls.repositoriesCreated, 0);
+  assert.equal(calls.postgresClosed, 1);
 });

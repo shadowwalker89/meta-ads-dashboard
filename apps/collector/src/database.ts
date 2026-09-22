@@ -4,6 +4,7 @@ import {
   openPostgresDatabase,
   resolveDatabaseProvider,
   runMigrations,
+  runPostgresMigrations,
   type DatabaseProviderEnv,
   type DatabaseProviderName,
   type PostgresDatabase,
@@ -23,6 +24,7 @@ export interface CollectorStorageDependencies {
   openSqlite: () => SqliteDatabase;
   runSqliteMigrations: (db: SqliteDatabase) => void;
   openPostgres: () => PostgresDatabase;
+  runPostgresMigrations: (db: PostgresDatabase) => Promise<void>;
   createRepositories: (
     handle: StorageHandle,
     env: DatabaseProviderEnv
@@ -33,6 +35,7 @@ const defaultDependencies: CollectorStorageDependencies = {
   openSqlite: openDatabase,
   runSqliteMigrations: runMigrations,
   openPostgres: openPostgresDatabase,
+  runPostgresMigrations,
   createRepositories,
 };
 
@@ -49,7 +52,9 @@ export async function openCollectorStorage(
       handle = db;
       dependencies.runSqliteMigrations(db);
     } else {
-      handle = dependencies.openPostgres();
+      const pg = dependencies.openPostgres();
+      handle = pg;
+      await dependencies.runPostgresMigrations(pg);
     }
 
     if (!handle) {
