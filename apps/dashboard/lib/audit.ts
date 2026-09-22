@@ -50,6 +50,7 @@ export const AUDIT_ACTIONS = {
   CAMPAIGN_ASSIGNMENT_CHANGED: "campaign.assignment_changed",
   CAMPAIGN_ASSIGNMENT_DEACTIVATED: "campaign.assignment_deactivated",
   DATA_EXPORT_CREATED: "data_export.created",
+  USER_CREATED: "user.created",
 } as const;
 
 export const AUDIT_TARGET_TYPES = {
@@ -57,6 +58,7 @@ export const AUDIT_TARGET_TYPES = {
   PACKAGE: "package",
   AD_ACCOUNT: "ad_account",
   CAMPAIGN: "campaign",
+  USER: "user",
 } as const;
 
 /** The acting user. Only identity fields are recorded — never secrets. */
@@ -329,6 +331,22 @@ export class AuditService {
       {
         rangeDays: metadata.rangeDays,
         rowCount: metadata.rowCount,
+      }
+    );
+  }
+
+  async recordUserCreated(
+    actor: AuditActor,
+    user: Pick<User, "id" | "role" | "clientId">
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.USER_CREATED,
+      AUDIT_TARGET_TYPES.USER,
+      user.id,
+      {
+        role: user.role,
+        clientId: user.clientId,
       }
     );
   }
