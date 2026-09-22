@@ -127,6 +127,32 @@ export interface DashboardStrings {
   adminUsersAuthError: string;
   adminUsersApplicationError: string;
   adminUsersUnknownError: string;
+  adminUsersEdit: string;
+  adminUsersStatus: string;
+  adminUsersActive: string;
+  adminUsersInactive: string;
+  adminUsersEditTitle: string;
+  adminUsersEditName: string;
+  adminUsersEditRole: string;
+  adminUsersEditClient: string;
+  adminUsersEditSubmit: string;
+  adminUsersEditSaving: string;
+  adminUsersEdited: string;
+  adminUsersEditedAuditWarning: string;
+  adminUsersActivate: string;
+  adminUsersActivated: string;
+  adminUsersDeactivate: string;
+  adminUsersDeactivated: string;
+  adminUsersStatusChanging: string;
+  adminUsersNotFound: string;
+  adminUsersProtectedSuperAdmin: string;
+  adminUsersSelfDeactivation: string;
+  adminUsersLastAdmin: string;
+  adminUsersClientScope: string;
+  adminUsersRoleNotEditable: string;
+  adminUsersNotEditable: string;
+  adminUsersStatusChangeForbidden: string;
+  adminUsersEditEmailReadonly: string;
 
   // Client management
   clientEdit: string;
@@ -452,6 +478,32 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     adminUsersAuthError: "ایجاد حساب احراز هویت انجام نشد.",
     adminUsersApplicationError: "ذخیره کاربر برنامه انجام نشد.",
     adminUsersUnknownError: "ایجاد کاربر انجام نشد.",
+    adminUsersEdit: "ویرایش",
+    adminUsersStatus: "وضعیت",
+    adminUsersActive: "فعال",
+    adminUsersInactive: "غیرفعال",
+    adminUsersEditTitle: "ویرایش کاربر",
+    adminUsersEditName: "نام",
+    adminUsersEditRole: "نقش",
+    adminUsersEditClient: "مشتری",
+    adminUsersEditSubmit: "ذخیره تغییرات",
+    adminUsersEditSaving: "در حال ذخیره...",
+    adminUsersEdited: "تغییرات کاربر ذخیره شد.",
+    adminUsersEditedAuditWarning: "تغییرات کاربر ذخیره شد، اما ثبت رویداد ممیزی کامل نشد.",
+    adminUsersActivate: "فعال‌سازی",
+    adminUsersDeactivate: "غیرفعال‌سازی",
+    adminUsersActivated: "کاربر فعال شد.",
+    adminUsersDeactivated: "کاربر غیرفعال شد.",
+    adminUsersStatusChanging: "در حال تغییر وضعیت...",
+    adminUsersNotFound: "کاربر یافت نشد.",
+    adminUsersProtectedSuperAdmin: "این کاربر super_admin است و قابل ویرایش نیست.",
+    adminUsersSelfDeactivation: "نمی‌توانید حساب کاربری خودتان را غیرفعال کنید.",
+    adminUsersLastAdmin: "نمی‌توان آخرین ادمین فعال را غیرفعال کرد.",
+    adminUsersClientScope: "به این مشتری دسترسی ندارید.",
+    adminUsersRoleNotEditable: "این نقش قابل ویرایش نیست.",
+    adminUsersNotEditable: "این کاربر قابل ویرایش نیست.",
+    adminUsersStatusChangeForbidden: "تغییر وضعیت این کاربر مجاز نیست.",
+    adminUsersEditEmailReadonly: "برای تغییر ایمیل، ابتدا کاربر حذف و دوباره ایجاد شود.",
 
     clientEdit: "ویرایش مشتری",
     clientSave: "ذخیره تغییرات",
@@ -757,6 +809,32 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     adminUsersAuthError: "The authentication account could not be created.",
     adminUsersApplicationError: "The application user could not be saved.",
     adminUsersUnknownError: "The user could not be created.",
+    adminUsersEdit: "Edit",
+    adminUsersStatus: "Status",
+    adminUsersActive: "Active",
+    adminUsersInactive: "Inactive",
+    adminUsersEditTitle: "Edit user",
+    adminUsersEditName: "Full name",
+    adminUsersEditRole: "Role",
+    adminUsersEditClient: "Client",
+    adminUsersEditSubmit: "Save changes",
+    adminUsersEditSaving: "Saving...",
+    adminUsersEdited: "User updated successfully.",
+    adminUsersEditedAuditWarning: "User updated, but audit recording did not complete.",
+    adminUsersActivate: "Activate",
+    adminUsersDeactivate: "Deactivate",
+    adminUsersActivated: "User activated.",
+    adminUsersDeactivated: "User deactivated.",
+    adminUsersStatusChanging: "Updating status...",
+    adminUsersNotFound: "User not found.",
+    adminUsersProtectedSuperAdmin: "This user is a protected super_admin and cannot be edited.",
+    adminUsersSelfDeactivation: "You cannot deactivate your own account.",
+    adminUsersLastAdmin: "The last active admin cannot be deactivated.",
+    adminUsersClientScope: "You do not have access to this client.",
+    adminUsersRoleNotEditable: "This role cannot be edited.",
+    adminUsersNotEditable: "This user cannot be edited.",
+    adminUsersStatusChangeForbidden: "Status change is not allowed for this user.",
+    adminUsersEditEmailReadonly: "Email changes require deleting and re-provisioning the user.",
 
     clientEdit: "Edit client",
     clientSave: "Save changes",
