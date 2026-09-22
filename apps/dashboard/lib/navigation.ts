@@ -42,8 +42,11 @@ export function buildNavItems(
       ? [{ title: t.navKpiConfig, href: "/admin/kpi-config", icon: SlidersHorizontal }]
       : []),
     ...(isManager
-      ? [{ title: t.navClients, href: "/admin/clients", icon: Users }]
-      : []),
+       ? [
+           { title: t.navClients, href: "/admin/clients", icon: Users },
+           { title: t.navUsers, href: "/admin/users", icon: Users },
+         ]
+       : []),
     ...(isManager
       ? [{ title: t.navCampaigns, href: "/admin/campaigns", icon: Megaphone }]
       : []),

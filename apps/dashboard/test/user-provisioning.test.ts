@@ -176,6 +176,7 @@ test("provisioning: application persistence failure compensates only the created
   const audit = auditFake();
   const baseUsers = new SqliteUserRepository(db);
   const failingUsers = {
+    listAll: baseUsers.listAll.bind(baseUsers),
     findById: baseUsers.findById.bind(baseUsers),
     findByEmail: baseUsers.findByEmail.bind(baseUsers),
     findByNormalizedEmail: baseUsers.findByNormalizedEmail.bind(baseUsers),

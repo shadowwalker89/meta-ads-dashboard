@@ -77,7 +77,7 @@ test("navigation: admin sees the admin management items, never package/pricing",
   const items = buildNavItems("admin", DASHBOARD_STRINGS.fa);
   assert.deepEqual(
     items.map((item) => item.href),
-    ["/dashboard", "/admin", "/admin/kpi-config", "/admin/clients", "/admin/campaigns"]
+    ["/dashboard", "/admin", "/admin/kpi-config", "/admin/clients", "/admin/users", "/admin/campaigns"]
   );
 });
 
@@ -90,6 +90,7 @@ test("navigation: super_admin sees every item including package/pricing", () => 
       "/admin",
       "/admin/kpi-config",
       "/admin/clients",
+      "/admin/users",
       "/admin/campaigns",
       "/admin/packages",
       "/admin/packages/assign",

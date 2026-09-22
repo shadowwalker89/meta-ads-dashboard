@@ -35,6 +35,13 @@ export class PgUserRepository implements UserRepository {
     return row ? toDomain(row) : null;
   }
 
+  async listAll(): Promise<User[]> {
+    const rows = await this.db.query<UserRow>(
+      "SELECT * FROM users ORDER BY created_at DESC, id DESC"
+    );
+    return rows.map(toDomain);
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     const row = await this.db.queryOne<UserRow>(
       "SELECT * FROM users WHERE email = $1",

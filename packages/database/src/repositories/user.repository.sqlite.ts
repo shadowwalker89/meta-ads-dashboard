@@ -33,6 +33,13 @@ export class SqliteUserRepository implements UserRepository {
     return row ? toDomain(row) : null;
   }
 
+  async listAll(): Promise<User[]> {
+    const rows = this.db
+      .prepare("SELECT * FROM users ORDER BY created_at DESC, id DESC")
+      .all() as UserRow[];
+    return rows.map(toDomain);
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     const row = this.db
       .prepare("SELECT * FROM users WHERE email = ?")

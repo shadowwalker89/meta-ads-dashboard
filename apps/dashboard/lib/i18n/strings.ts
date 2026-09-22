@@ -96,6 +96,37 @@ export interface DashboardStrings {
   adminPricingSubtitle: string;
   adminPricingConfigTitle: string;
   adminPricingConfigSubtitle: string;
+  navUsers: string;
+  adminUsersTitle: string;
+  adminUsersSubtitle: string;
+  adminUsersCreate: string;
+  adminUsersEmpty: string;
+  adminUsersName: string;
+  adminUsersEmail: string;
+  adminUsersRole: string;
+  adminUsersClient: string;
+  adminUsersCreatedAt: string;
+  adminUsersRoleAdmin: string;
+  adminUsersRoleClient: string;
+  adminUsersNoClient: string;
+  adminUsersCreateTitle: string;
+  adminUsersCreateName: string;
+  adminUsersCreateEmail: string;
+  adminUsersCreatePassword: string;
+  adminUsersCreateRole: string;
+  adminUsersCreateClient: string;
+  adminUsersCreateSubmit: string;
+  adminUsersCreateSaving: string;
+  adminUsersCreated: string;
+  adminUsersCreatedAuditWarning: string;
+  adminUsersCancel: string;
+  adminUsersInvalidInput: string;
+  adminUsersDuplicate: string;
+  adminUsersAuthDuplicate: string;
+  adminUsersForbidden: string;
+  adminUsersAuthError: string;
+  adminUsersApplicationError: string;
+  adminUsersUnknownError: string;
 
   // Client management
   clientEdit: string;
@@ -347,6 +378,7 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     navAdminOverview: "نمای مدیریت",
     navKpiConfig: "تنظیم KPI مشتریان",
     navClients: "مدیریت مشتریان",
+    navUsers: "مدیریت کاربران",
     navPackages: "مدیریت پکیج‌ها",
     navAssignPackage: "اختصاص پکیج",
     navPricingReview: "بررسی قیمت‌گذاری",
@@ -390,6 +422,36 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     adminPricingConfigTitle: "تنظیم قیمت‌گذاری",
     adminPricingConfigSubtitle:
       "برای هر متریک، یک قانون مؤثر جدید تعریف کنید. قوانین فقط اضافه می‌شوند و هرگز تغییر یا حذف نمی‌شوند.",
+    adminUsersTitle: "مدیریت کاربران",
+    adminUsersSubtitle: "کاربران برنامه و دسترسی مشتریان را مدیریت کنید.",
+    adminUsersCreate: "ایجاد کاربر",
+    adminUsersEmpty: "هنوز کاربری ایجاد نشده است.",
+    adminUsersName: "نام",
+    adminUsersEmail: "ایمیل",
+    adminUsersRole: "نقش",
+    adminUsersClient: "مشتری",
+    adminUsersCreatedAt: "تاریخ ایجاد",
+    adminUsersRoleAdmin: "ادمین",
+    adminUsersRoleClient: "مشتری",
+    adminUsersNoClient: "بدون مشتری",
+    adminUsersCreateTitle: "ایجاد کاربر جدید",
+    adminUsersCreateName: "نام کامل",
+    adminUsersCreateEmail: "ایمیل",
+    adminUsersCreatePassword: "رمز عبور اولیه",
+    adminUsersCreateRole: "نقش",
+    adminUsersCreateClient: "مشتری",
+    adminUsersCreateSubmit: "ایجاد کاربر",
+    adminUsersCreateSaving: "در حال ایجاد...",
+    adminUsersCreated: "کاربر با موفقیت ایجاد شد.",
+    adminUsersCreatedAuditWarning: "کاربر ایجاد شد، اما ثبت رویداد ممیزی کامل نشد.",
+    adminUsersCancel: "انصراف",
+    adminUsersInvalidInput: "اطلاعات واردشده معتبر نیست.",
+    adminUsersDuplicate: "کاربری با این ایمیل از قبل وجود دارد.",
+    adminUsersAuthDuplicate: "این ایمیل در احراز هویت Supabase از قبل وجود دارد و نیاز به پیوند صریح دارد.",
+    adminUsersForbidden: "شما اجازه ایجاد این کاربر را ندارید.",
+    adminUsersAuthError: "ایجاد حساب احراز هویت انجام نشد.",
+    adminUsersApplicationError: "ذخیره کاربر برنامه انجام نشد.",
+    adminUsersUnknownError: "ایجاد کاربر انجام نشد.",
 
     clientEdit: "ویرایش مشتری",
     clientSave: "ذخیره تغییرات",
@@ -621,6 +683,7 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     navAdminOverview: "Admin Overview",
     navKpiConfig: "Client KPI Setup",
     navClients: "Clients",
+    navUsers: "Users",
     navPackages: "Packages",
     navAssignPackage: "Assign Package",
     navPricingReview: "Pricing Review",
@@ -664,6 +727,36 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     adminPricingConfigTitle: "Pricing Settings",
     adminPricingConfigSubtitle:
       "Define a new effective rule per metric. Rules are append-only and never changed or removed.",
+    adminUsersTitle: "User Management",
+    adminUsersSubtitle: "Manage application users and client access.",
+    adminUsersCreate: "Create user",
+    adminUsersEmpty: "No users have been created yet.",
+    adminUsersName: "Name",
+    adminUsersEmail: "Email",
+    adminUsersRole: "Role",
+    adminUsersClient: "Client",
+    adminUsersCreatedAt: "Created",
+    adminUsersRoleAdmin: "Admin",
+    adminUsersRoleClient: "Client",
+    adminUsersNoClient: "No client",
+    adminUsersCreateTitle: "Create user",
+    adminUsersCreateName: "Full name",
+    adminUsersCreateEmail: "Email",
+    adminUsersCreatePassword: "Initial password",
+    adminUsersCreateRole: "Role",
+    adminUsersCreateClient: "Client",
+    adminUsersCreateSubmit: "Create user",
+    adminUsersCreateSaving: "Creating...",
+    adminUsersCreated: "User created successfully.",
+    adminUsersCreatedAuditWarning: "User created, but audit recording did not complete.",
+    adminUsersCancel: "Cancel",
+    adminUsersInvalidInput: "Please check the entered information.",
+    adminUsersDuplicate: "An application user with this email already exists.",
+    adminUsersAuthDuplicate: "This email already exists in Supabase Auth and requires explicit linking.",
+    adminUsersForbidden: "You are not allowed to create this user.",
+    adminUsersAuthError: "The authentication account could not be created.",
+    adminUsersApplicationError: "The application user could not be saved.",
+    adminUsersUnknownError: "The user could not be created.",
 
     clientEdit: "Edit client",
     clientSave: "Save changes",
