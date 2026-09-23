@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { AccessError, requireUser } from "@/lib/access";
 import { DEFAULT_REPORTING_PERIOD, isReportingPeriod } from "@/lib/dashboard-period";
 import { runGetDashboardExport, toCsvFileBytes } from "@/lib/dashboard-export";
+import { prepareDatabase } from "@/lib/db";
+
+export const runtime = "nodejs";
 
 /**
  * GET /api/dashboard/export?range=30
@@ -18,6 +21,7 @@ import { runGetDashboardExport, toCsvFileBytes } from "@/lib/dashboard-export";
  *     enforced inside runGetDashboardExport before any data is read.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  await prepareDatabase();
   let user;
   try {
     user = await requireUser();

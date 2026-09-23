@@ -102,10 +102,9 @@ export function getRepositories(
 // The async PostgreSQL half of startup. SQLite is handled synchronously
 // inside getDatabase(); this covers the supabase branch, whose migration
 // runner (pg) is async and therefore cannot live in getRepositories().
-// Call it ONCE from instrumentation.ts register() so the schema is
+// Call it once from the Node.js dashboard layout so the schema is
 // guaranteed before the first database-dependent request. A failure is
-// not cached: register() re-runs on the next process start and fails
-// loudly again.
+// not cached, so a later request can retry after the process recovers.
 let postgresReady: Promise<void> | null = null;
 
 export function prepareDatabase(): Promise<void> {
@@ -115,7 +114,12 @@ export function prepareDatabase(): Promise<void> {
   if (!postgresReady) {
     postgresReady = (async () => {
       const pg = openPostgresDatabase();
-      await runPostgresMigrations(pg);
+      try {
+        await runPostgresMigrations(pg);
+      } catch (error) {
+        await pg.close();
+        throw error;
+      }
     })().catch((error) => {
       postgresReady = null;
       throw error;
