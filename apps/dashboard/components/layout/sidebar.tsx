@@ -73,9 +73,13 @@ export function SidebarToggle({
 export function Sidebar({
   role,
   collapsed,
+  onPointerEnter,
+  onPointerLeave,
 }: {
   role: UserRole;
   collapsed: boolean;
+  onPointerEnter?: (event: React.PointerEvent<HTMLElement>) => void;
+  onPointerLeave?: (event: React.PointerEvent<HTMLElement>) => void;
 }) {
   const pathname = usePathname();
   const { strings: t } = useDashboardLang();
@@ -83,6 +87,8 @@ export function Sidebar({
 
   return (
     <aside
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       className={cn(
         "hidden shrink-0 overflow-hidden md:flex md:flex-col border-e border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
         collapsed ? "md:w-16" : "md:w-64"

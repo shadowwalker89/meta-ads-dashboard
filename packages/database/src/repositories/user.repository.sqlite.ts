@@ -9,7 +9,12 @@ interface UserRow {
   email: string;
   client_id: string | null;
   auth_id: string | null;
+  is_active: number;
   created_at: string;
+}
+
+export function normalizeUserEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
 function toDomain(row: UserRow): User {
@@ -18,7 +23,9 @@ function toDomain(row: UserRow): User {
     role: row.role as User["role"],
     fullName: row.full_name,
     email: row.email,
+    authId: row.auth_id,
     clientId: row.client_id,
+    isActive: row.is_active === 1,
     createdAt: new Date(row.created_at),
   };
 }
@@ -47,6 +54,13 @@ export class SqliteUserRepository implements UserRepository {
     return row ? toDomain(row) : null;
   }
 
+  async findByNormalizedEmail(email: string): Promise<User | null> {
+    const row = this.db
+      .prepare("SELECT * FROM users WHERE lower(trim(email)) = ?")
+      .get(normalizeUserEmail(email)) as UserRow | undefined;
+    return row ? toDomain(row) : null;
+  }
+
   async findByAuthId(authId: string): Promise<User | null> {
     const row = this.db
       .prepare("SELECT * FROM users WHERE auth_id = ?")
@@ -66,9 +80,18 @@ export class SqliteUserRepository implements UserRepository {
     const createdAt = new Date().toISOString();
     this.db
       .prepare(
-        "INSERT INTO users (id, role, full_name, email, client_id, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+        "INSERT INTO users (id, role, full_name, email, auth_id, client_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       )
-      .run(id, user.role, user.fullName, user.email, user.clientId, createdAt);
+      .run(
+        id,
+        user.role,
+        user.fullName,
+        user.email,
+        user.authId ?? null,
+        user.clientId,
+        user.isActive ?? true ? 1 : 0,
+        createdAt
+      );
     return { id, ...user, createdAt: new Date(createdAt) };
   }
 
@@ -83,9 +106,9 @@ export class SqliteUserRepository implements UserRepository {
     const merged: User = { ...existing, ...changes };
     this.db
       .prepare(
-        "UPDATE users SET role = ?, full_name = ?, email = ?, client_id = ? WHERE id = ?"
+        "UPDATE users SET role = ?, full_name = ?, email = ?, client_id = ?, is_active = ? WHERE id = ?"
       )
-      .run(merged.role, merged.fullName, merged.email, merged.clientId, id);
+      .run(merged.role, merged.fullName, merged.email, merged.clientId, merged.isActive ? 1 : 0, id);
     return merged;
   }
 }

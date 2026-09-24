@@ -36,6 +36,7 @@ test("pg migrations: discovery is deterministic (*.sql, filename order)", () => 
     "001_init_pg.sql",
     "002_add_campaign_assignments_pg.sql",
     "003_add_auth_id_to_users_pg.sql",
+    "004_add_user_active_pg.sql",
   ]);
 });
 
@@ -52,7 +53,11 @@ test("pg baseline: defines every current table with approved PG types", () => {
     join(process.cwd(), "src", "migrations-pg", "003_add_auth_id_to_users_pg.sql"),
     "utf-8"
   );
-  const combinedSql = sql001 + "\n" + sql002 + "\n" + sql003;
+  const sql004 = readFileSync(
+    join(process.cwd(), "src", "migrations-pg", "004_add_user_active_pg.sql"),
+    "utf-8"
+  );
+  const combinedSql = sql001 + "\n" + sql002 + "\n" + sql003 + "\n" + sql004;
 
   for (const table of EXPECTED_TABLES) {
     assert.match(combinedSql, new RegExp(`CREATE TABLE ${table} \\(`));
@@ -98,6 +103,7 @@ async function resetAndMigrate(): Promise<PostgresDatabase> {
     "001_init_pg.sql",
     "002_add_campaign_assignments_pg.sql",
     "003_add_auth_id_to_users_pg.sql",
+    "004_add_user_active_pg.sql",
   ]);
   assert.deepEqual(result.skipped, []);
   return db;
@@ -267,6 +273,7 @@ test(
         ["insight_snapshots", "impressions", "bigint"],
         ["insight_snapshots", "spend", "double precision"],
         ["clients", "is_active", "boolean"],
+        ["users", "is_active", "boolean"],
         ["users", "created_at", "timestamp with time zone"],
         ["users", "id", "uuid"],
         ["packages", "features", "jsonb"],
@@ -320,6 +327,7 @@ test(
           "001_init_pg.sql",
           "002_add_campaign_assignments_pg.sql",
           "003_add_auth_id_to_users_pg.sql",
+          "004_add_user_active_pg.sql",
         ]);
         // ...and its partial work must be rolled back (no junk table).
         const junk = await db.queryOne<{ reg: string | null }>(

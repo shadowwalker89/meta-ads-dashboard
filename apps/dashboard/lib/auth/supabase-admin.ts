@@ -5,6 +5,15 @@ export interface SupabaseAdminEnv {
   SUPABASE_SERVICE_ROLE_KEY?: string;
 }
 
+export class SupabaseAdminConfigurationError extends Error {
+  readonly code = "configuration_error";
+
+  constructor() {
+    super("Supabase Admin API is not configured on the server.");
+    this.name = "SupabaseAdminConfigurationError";
+  }
+}
+
 export interface SupabaseAdminUser {
   id: string;
   email?: string | null;
@@ -18,6 +27,11 @@ export interface SupabaseAdminAuth {
       email_confirm?: boolean;
     }): Promise<{ data: { user: SupabaseAdminUser | null }; error: SupabaseAdminError | null }>;
     deleteUser(id: string): Promise<{ error: SupabaseAdminError | null }>;
+    getUserById(id: string): Promise<{ data: { user: SupabaseAdminUser | null }; error: SupabaseAdminError | null }>;
+    updateUserById(
+      id: string,
+      input: { password?: string; email_confirm?: boolean }
+    ): Promise<{ data: { user: SupabaseAdminUser | null }; error: SupabaseAdminError | null }>;
   };
 }
 
@@ -33,9 +47,7 @@ export interface SupabaseAdminClient {
 
 function assertConfigured(env: SupabaseAdminEnv): asserts env is Required<SupabaseAdminEnv> {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error(
-      "Supabase Admin API is selected but SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set."
-    );
+    throw new SupabaseAdminConfigurationError();
   }
 }
 

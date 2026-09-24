@@ -1,7 +1,17 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getAuthProvider } from "@/lib/auth";
+import { getAuthProvider, getAuthUserMapper } from "@/lib/auth";
+import {
+  authenticateActiveUser,
+  loginFailureMessage,
+} from "@/lib/auth/login";
+import {
+  DEFAULT_LANGUAGE,
+  isAppLanguage,
+  LANG_COOKIE,
+} from "@/lib/i18n/strings";
 
 export type SignInResult = { error: string } | undefined;
 
@@ -22,13 +32,19 @@ export async function signInWithPassword(
     return { error: "ایمیل معتبر وارد کنید." };
   }
 
-  try {
-    await getAuthProvider().signIn({
-      email,
-      password: password || undefined,
-    });
-  } catch {
-    return { error: "ایمیل یا رمز عبور نادرست است." };
+  const failure = await authenticateActiveUser(
+    getAuthProvider(),
+    getAuthUserMapper(),
+    { email, password: password || undefined }
+  );
+  if (failure) {
+    const language = (await cookies()).get(LANG_COOKIE)?.value;
+    return {
+      error: loginFailureMessage(
+        failure,
+        isAppLanguage(language) ? language : DEFAULT_LANGUAGE
+      ),
+    };
   }
   redirect("/dashboard");
 }

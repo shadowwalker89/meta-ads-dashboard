@@ -11,7 +11,9 @@ export interface User {
   role: UserRole;
   fullName: string;
   email: string;
+  authId?: string | null;
   clientId: string | null;
+  isActive?: boolean;
   createdAt: Date;
 }
 

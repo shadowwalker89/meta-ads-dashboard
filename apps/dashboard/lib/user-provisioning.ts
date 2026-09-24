@@ -4,6 +4,7 @@ import { accessibleClientIds } from "@/lib/access";
 import { getDatabase, getRepositories } from "@/lib/db";
 import {
   createSupabaseAdminClient,
+  SupabaseAdminConfigurationError,
   type SupabaseAdminClient,
   type SupabaseAdminError,
 } from "@/lib/auth/supabase-admin";
@@ -45,9 +46,10 @@ export class ProvisioningError extends Error {
     | "forbidden"
     | "invalid_input"
     | "duplicate_application_user"
-    | "duplicate_auth_user"
-    | "auth_error"
-    | "application_error";
+     | "duplicate_auth_user"
+     | "auth_error"
+     | "configuration_error"
+     | "application_error";
 
   constructor(
     code: ProvisioningError["code"],
@@ -153,11 +155,19 @@ export async function provisionApplicationUser(
     clientId = null;
   }
 
-  const auth = deps.auth ?? createSupabaseAdminClient();
+  let auth: SupabaseAdminClient;
+  try {
+    auth = deps.auth ?? createSupabaseAdminClient();
+  } catch (error) {
+    if (error instanceof SupabaseAdminConfigurationError) {
+      throw new ProvisioningError("configuration_error", error.message, { cause: error });
+    }
+    throw error;
+  }
   const createdAuth = await auth.auth.admin.createUser({
     email,
     password: input.password,
-    email_confirm: false,
+    email_confirm: true,
   });
   if (createdAuth.error || !createdAuth.data.user) {
     if (createdAuth.error && isDuplicateAuthError(createdAuth.error)) {
@@ -181,6 +191,7 @@ export async function provisionApplicationUser(
       role: input.role,
       clientId,
       authId,
+      isActive: true,
     });
   } catch (error) {
     try {

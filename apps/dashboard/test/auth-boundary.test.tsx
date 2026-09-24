@@ -17,6 +17,7 @@ import {
 } from "@repo/database";
 import type { Package, User } from "@repo/shared";
 import { resolveCurrentUser } from "@/lib/auth";
+import { authenticateActiveUser } from "@/lib/auth/login";
 import { resolveAuthProviderName } from "@/lib/auth/config";
 import {
   MockAuthProvider,
@@ -35,7 +36,9 @@ import {
 import {
   accessibleClientIds,
   requireClientAccess,
+  requireUser,
 } from "@/lib/access";
+import { loginFailureMessage } from "@/lib/auth/login";
 
 type Db = ReturnType<typeof openDatabase>;
 
@@ -505,6 +508,72 @@ test("auth-boundary: an orphaned identity is rejected, never authorized anonymou
   await assert.rejects(
     () => resolveCurrentUser({ provider, mapper }),
     /no matching application User/
+  );
+});
+
+test("auth-boundary: login permits active users and redirects through the existing success path", async () => {
+  const user = makeUser({ email: "active@example.com", isActive: true });
+  const users = new FakeUsers([user]);
+  const store = new InMemoryStore();
+  const provider = new MockAuthProvider({ store, users });
+  const mapper = new MockAuthUserMapper(users);
+
+  assert.equal(
+    await authenticateActiveUser(provider, mapper, {
+      email: "active@example.com",
+    }),
+    null
+  );
+  assert.equal((await provider.getSession())?.identity.id, "active@example.com");
+  assert.equal((await mapper.findByAuthId("active@example.com"))?.id, user.id);
+});
+
+test("auth-boundary: inactive authenticated user is signed out and rejected at login", async () => {
+  const users = new FakeUsers([
+    makeUser({ email: "inactive@example.com", isActive: false }),
+  ]);
+  const provider = new MockAuthProvider({ store: new InMemoryStore(), users });
+  const mapper = new MockAuthUserMapper(users);
+
+  assert.equal(
+    await authenticateActiveUser(provider, mapper, {
+      email: "inactive@example.com",
+    }),
+    "inactive_account"
+  );
+  assert.equal(await provider.getSession(), null);
+  assert.equal(
+    loginFailureMessage("inactive_account", "en"),
+    "Your account is inactive. Please contact an administrator."
+  );
+  assert.equal(
+    loginFailureMessage("inactive_account", "fa"),
+    "حساب کاربری شما غیرفعال است. لطفاً با مدیر سیستم تماس بگیرید."
+  );
+  await assert.rejects(() => requireUser(async () => null), {
+    kind: "unauthenticated",
+  });
+});
+
+test("auth-boundary: invalid credentials retain generic failure and no session", async () => {
+  const users = new FakeUsers([makeUser({ email: "known@example.com" })]);
+  const provider = new MockAuthProvider({ store: new InMemoryStore(), users });
+  const mapper = new MockAuthUserMapper(users);
+
+  assert.equal(
+    await authenticateActiveUser(provider, mapper, {
+      email: "unknown@example.com",
+    }),
+    "invalid_credentials"
+  );
+  assert.equal(await provider.getSession(), null);
+  assert.equal(
+    loginFailureMessage("invalid_credentials", "en"),
+    "Email or password is incorrect."
+  );
+  assert.equal(
+    loginFailureMessage("invalid_credentials", "fa"),
+    "ایمیل یا رمز عبور نادرست است."
   );
 });
 

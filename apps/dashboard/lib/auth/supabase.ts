@@ -10,6 +10,7 @@ import type {
 } from "./types";
 
 export interface SupabaseAuthEnv {
+  NODE_ENV?: string;
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;
 }
@@ -34,8 +35,11 @@ type SupabaseAuthClient = {
       email: string;
       password: string;
     }): Promise<{
-      data: { user: { id: string; email?: string | null } | null };
-      error: { message: string } | null;
+      data: {
+        user: { id: string; email?: string | null } | null;
+        session?: unknown | null;
+      };
+      error: { message: string; code?: string; status?: number } | null;
     }>;
     getUser(): Promise<{
       data: { user: { id: string; email?: string | null } | null };
@@ -102,6 +106,19 @@ export class SupabaseAuthProvider implements AuthProvider {
       email: input.email,
       password: input.password,
     });
+    if (this.env.NODE_ENV === "development") {
+      console.debug("[supabase-auth] sign-in", {
+        projectRef: this.env.SUPABASE_URL?.match(
+          /^https?:\/\/([a-z0-9]{20})\.supabase\.co/
+        )?.[1] ?? "unknown",
+        normalizedEmail: input.email.trim().toLowerCase(),
+        errorMessage: error?.message ?? null,
+        errorCode: error?.code ?? null,
+        errorStatus: error?.status ?? null,
+        sessionReturned: Boolean(data.session),
+        userId: data.user?.id ?? null,
+      });
+    }
     if (error || !data.user) {
       throw new Error(error?.message ?? "Sign-in failed.");
     }
@@ -144,25 +161,40 @@ export class SupabaseAuthProvider implements AuthProvider {
  * resolveCurrentUser rejects them loudly instead of authorizing
  * anonymously.
  */
+export interface SupabaseAuthMappingPolicy {
+  allowEmailFallback: boolean;
+  persistEmailLink: boolean;
+}
+
+const DEFAULT_MAPPING_POLICY: SupabaseAuthMappingPolicy = {
+  allowEmailFallback: true,
+  persistEmailLink: false,
+};
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export class SupabaseAuthUserMapper implements AuthUserMapper {
   readonly provider = "supabase" as const;
 
   constructor(
     private readonly users: Pick<
       import("@repo/shared").UserRepository,
-      "findByAuthId" | "findByEmail" | "setAuthId"
-    > = getRepositories().userRepository
+      "findByAuthId" | "findByNormalizedEmail" | "setAuthId"
+    > = getRepositories().userRepository,
+    private readonly policy: SupabaseAuthMappingPolicy = DEFAULT_MAPPING_POLICY
   ) {}
 
   async findByAuthId(authId: string, email?: string): Promise<User | null> {
     const linked = await this.users.findByAuthId(authId);
-    if (linked || !email) {
+    if (linked || !email || !this.policy.allowEmailFallback) {
       return linked;
     }
 
-    const existing = await this.users.findByEmail(email);
-    if (!existing) {
-      return null;
+    const existing = await this.users.findByNormalizedEmail(normalizeEmail(email));
+    if (!existing || !this.policy.persistEmailLink) {
+      return existing;
     }
 
     const didLink = await this.users.setAuthId(existing.id, authId);

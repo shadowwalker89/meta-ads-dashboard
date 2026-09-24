@@ -153,6 +153,20 @@ export interface DashboardStrings {
   adminUsersNotEditable: string;
   adminUsersStatusChangeForbidden: string;
   adminUsersEditEmailReadonly: string;
+  loginInactiveAccount: string;
+  loginInvalidCredentials: string;
+  adminUsersSetPassword: string;
+  adminUsersSetPasswordTitle: string;
+  adminUsersSetPasswordLabel: string;
+  adminUsersSetPasswordPlaceholder: string;
+  adminUsersSetPasswordSubmit: string;
+  adminUsersSetPasswordSaving: string;
+  adminUsersPasswordUpdated: string;
+  adminUsersPasswordUpdatedAuditWarning: string;
+  adminUsersPasswordTooShort: string;
+  adminUsersPasswordNoAuthIdentity: string;
+  adminUsersPasswordConfigurationError: string;
+  adminUsersPasswordAuthError: string;
 
   // Client management
   clientEdit: string;
@@ -392,6 +406,57 @@ export interface DashboardStrings {
   campaignChangedSuccess: string;
   campaignDeactivatedSuccess: string;
   campaignActionError: string;
+
+  // Audit activity (client detail)
+  auditActivityTitle: string;
+  auditActivityDescription: string;
+  auditActivityEmpty: string;
+  auditActivityLoadMore: string;
+  auditActivityActorFallback: string;
+  auditActivityUnknownAction: string;
+  /** Filled with {actor}. */
+  auditActivityByActor: string;
+  auditActionPackageAssigned: string;
+  auditActionPackageCreated: string;
+  auditActionPackageUpdated: string;
+  auditActionPricingRuleCreated: string;
+  auditActionKpiConfigChanged: string;
+  auditActionClientCreated: string;
+  auditActionClientUpdated: string;
+  auditActionClientDeactivated: string;
+  auditActionAdAccountCreated: string;
+  auditActionAdAccountSourceUpdated: string;
+  auditActionAdAccountStatusUpdated: string;
+  auditActionCampaignAssigned: string;
+  auditActionCampaignAssignmentChanged: string;
+  auditActionCampaignAssignmentDeactivated: string;
+  auditActionDataExportCreated: string;
+  auditActionUserCreated: string;
+  auditActionUserUpdated: string;
+  auditActionUserActivated: string;
+  auditActionUserDeactivated: string;
+  auditActivityMetadataPackageReassigned: string;
+  auditActivityMetadataPackageAssigned: string;
+  auditActivityMetadataPackageChanged: string;
+  /** Filled with {metric}. */
+  auditActivityMetadataPricingRuleCreated: string;
+  auditActivityMetadataPricingRuleCreatedGeneric: string;
+  /** Filled with {kpis}. */
+  auditActivityMetadataKpiConfigChanged: string;
+  auditActivityMetadataKpiConfigChangedGeneric: string;
+  /** Filled with {name}. */
+  auditActivityMetadataClientCreated: string;
+  auditActivityMetadataClientCreatedGeneric: string;
+  /** Filled with {name}, {previousName}. */
+  auditActivityMetadataClientRenamed: string;
+  /** Filled with {status}. */
+  auditActivityMetadataClientStatusChanged: string;
+  auditActivityMetadataClientUpdated: string;
+  /** Filled with {name}. */
+  auditActivityMetadataClientDeactivated: string;
+  auditActivityMetadataClientDeactivatedGeneric: string;
+  /** Filled with {range}, {rows}. */
+  auditActivityMetadataDataExportCreated: string;
 }
 
 export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
@@ -504,6 +569,20 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     adminUsersNotEditable: "این کاربر قابل ویرایش نیست.",
     adminUsersStatusChangeForbidden: "تغییر وضعیت این کاربر مجاز نیست.",
     adminUsersEditEmailReadonly: "برای تغییر ایمیل، ابتدا کاربر حذف و دوباره ایجاد شود.",
+    loginInactiveAccount: "حساب کاربری شما غیرفعال است. لطفاً با مدیر سیستم تماس بگیرید.",
+    loginInvalidCredentials: "ایمیل یا رمز عبور نادرست است.",
+    adminUsersSetPassword: "تغییر رمز عبور",
+    adminUsersSetPasswordTitle: "تغییر رمز عبور کاربر",
+    adminUsersSetPasswordLabel: "رمز عبور جدید",
+    adminUsersSetPasswordPlaceholder: "حداقل ۸ کاراکتر",
+    adminUsersSetPasswordSubmit: "ذخیره رمز عبور",
+    adminUsersSetPasswordSaving: "در حال ذخیره...",
+    adminUsersPasswordUpdated: "رمز عبور کاربر به‌روزرسانی شد.",
+    adminUsersPasswordUpdatedAuditWarning: "رمز عبور به‌روزرسانی شد، اما ثبت رویداد ممیزی کامل نشد.",
+    adminUsersPasswordTooShort: "رمز عبور باید حداقل ۸ کاراکتر باشد.",
+    adminUsersPasswordNoAuthIdentity: "این کاربر حساب احراز هویت ندارد.",
+    adminUsersPasswordConfigurationError: "تنظیمات سرور برای تغییر رمز عبور کامل نیست.",
+    adminUsersPasswordAuthError: "تغییر رمز عبور در سرور احراز هویت انجام نشد.",
 
     clientEdit: "ویرایش مشتری",
     clientSave: "ذخیره تغییرات",
@@ -725,6 +804,49 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     advancedTitle: "گزارش پیشرفته",
     advancedDescription: "گزارش‌های تحلیلی فراتر از شاخص‌های اصلی",
     advancedEmpty: "گزارش پیشرفته به‌زودی در این بخش ارائه می‌شود.",
+
+    auditActivityTitle: "فعالیت ممیزی",
+    auditActivityDescription:
+      "تاریخچه‌ی اقدامات ثبت‌شده روی این مشتری، فقط برای ادمین‌ها.",
+    auditActivityEmpty: "هیچ فعالیت ممیزی‌ای برای این مشتری ثبت نشده است.",
+    auditActivityLoadMore: "بارگذاری بیشتر",
+    auditActivityActorFallback: "کاربر حذف‌شده",
+    auditActivityUnknownAction: "اقدام نامشخص",
+    auditActivityByActor: "توسط {actor}",
+    auditActionPackageAssigned: "پکیج اختصاص داده شد",
+    auditActionPackageCreated: "پکیج ایجاد شد",
+    auditActionPackageUpdated: "پکیج به‌روزرسانی شد",
+    auditActionPricingRuleCreated: "قانون قیمت‌گذاری ایجاد شد",
+    auditActionKpiConfigChanged: "تنظیم KPI تغییر کرد",
+    auditActionClientCreated: "مشتری ایجاد شد",
+    auditActionClientUpdated: "مشتری به‌روزرسانی شد",
+    auditActionClientDeactivated: "مشتری غیرفعال شد",
+    auditActionAdAccountCreated: "اکانت تبلیغاتی ایجاد شد",
+    auditActionAdAccountSourceUpdated: "منبع اکانت تبلیغاتی تغییر کرد",
+    auditActionAdAccountStatusUpdated: "وضعیت اکانت تبلیغاتی تغییر کرد",
+    auditActionCampaignAssigned: "کمپین منتسب شد",
+    auditActionCampaignAssignmentChanged: "انتساب کمپین تغییر کرد",
+    auditActionCampaignAssignmentDeactivated: "انتساب کمپین لغو شد",
+    auditActionDataExportCreated: "خروجی داده ایجاد شد",
+    auditActionUserCreated: "کاربر ایجاد شد",
+    auditActionUserUpdated: "کاربر به‌روزرسانی شد",
+    auditActionUserActivated: "کاربر فعال شد",
+    auditActionUserDeactivated: "کاربر غیرفعال شد",
+    auditActivityMetadataPackageReassigned: "پکیج مجدداً اختصاص یافت",
+    auditActivityMetadataPackageAssigned: "پکیج اختصاص یافت",
+    auditActivityMetadataPackageChanged: "پکیج تغییر کرد",
+    auditActivityMetadataPricingRuleCreated: "برای {metric}",
+    auditActivityMetadataPricingRuleCreatedGeneric: "قانون قیمت‌گذاری جدید",
+    auditActivityMetadataKpiConfigChanged: "شاخص‌ها: {kpis}",
+    auditActivityMetadataKpiConfigChangedGeneric: "شاخص‌های قابل مشاهده تغییر کردند",
+    auditActivityMetadataClientCreated: "«{name}»",
+    auditActivityMetadataClientCreatedGeneric: "مشتری جدید",
+    auditActivityMetadataClientRenamed: "از «{previousName}» به «{name}»",
+    auditActivityMetadataClientStatusChanged: "وضعیت: {status}",
+    auditActivityMetadataClientUpdated: "اطلاعات مشتری ویرایش شد",
+    auditActivityMetadataClientDeactivated: "«{name}»",
+    auditActivityMetadataClientDeactivatedGeneric: "مشتری غیرفعال شد",
+    auditActivityMetadataDataExportCreated: "بازه‌ی {range} روز — {rows} ردیف",
   },
   en: {
     brandTitle: "Meta Ads Panel",
@@ -835,6 +957,20 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     adminUsersNotEditable: "This user cannot be edited.",
     adminUsersStatusChangeForbidden: "Status change is not allowed for this user.",
     adminUsersEditEmailReadonly: "Email changes require deleting and re-provisioning the user.",
+    loginInactiveAccount: "Your account is inactive. Please contact an administrator.",
+    loginInvalidCredentials: "Email or password is incorrect.",
+    adminUsersSetPassword: "Set password",
+    adminUsersSetPasswordTitle: "Set user password",
+    adminUsersSetPasswordLabel: "New password",
+    adminUsersSetPasswordPlaceholder: "Minimum 8 characters",
+    adminUsersSetPasswordSubmit: "Save password",
+    adminUsersSetPasswordSaving: "Saving...",
+    adminUsersPasswordUpdated: "Password updated successfully.",
+    adminUsersPasswordUpdatedAuditWarning: "Password updated, but audit recording did not complete.",
+    adminUsersPasswordTooShort: "Password must be at least 8 characters.",
+    adminUsersPasswordNoAuthIdentity: "This user has no authentication account.",
+    adminUsersPasswordConfigurationError: "Server is not configured to change passwords.",
+    adminUsersPasswordAuthError: "Password change failed on the authentication server.",
 
     clientEdit: "Edit client",
     clientSave: "Save changes",
@@ -1053,6 +1189,49 @@ export const DASHBOARD_STRINGS: Record<AppLanguage, DashboardStrings> = {
     advancedTitle: "Advanced Reporting",
     advancedDescription: "Analytical reports beyond the core metrics",
     advancedEmpty: "Advanced reporting will be available here soon.",
+
+    auditActivityTitle: "Audit Activity",
+    auditActivityDescription:
+      "Recorded actions on this client, visible to admins only.",
+    auditActivityEmpty: "No audit activity has been recorded for this client.",
+    auditActivityLoadMore: "Load more",
+    auditActivityActorFallback: "Removed user",
+    auditActivityUnknownAction: "Unknown action",
+    auditActivityByActor: "by {actor}",
+    auditActionPackageAssigned: "Package assigned",
+    auditActionPackageCreated: "Package created",
+    auditActionPackageUpdated: "Package updated",
+    auditActionPricingRuleCreated: "Pricing rule created",
+    auditActionKpiConfigChanged: "KPI configuration changed",
+    auditActionClientCreated: "Client created",
+    auditActionClientUpdated: "Client updated",
+    auditActionClientDeactivated: "Client deactivated",
+    auditActionAdAccountCreated: "Ad account created",
+    auditActionAdAccountSourceUpdated: "Ad account source updated",
+    auditActionAdAccountStatusUpdated: "Ad account status updated",
+    auditActionCampaignAssigned: "Campaign assigned",
+    auditActionCampaignAssignmentChanged: "Campaign assignment changed",
+    auditActionCampaignAssignmentDeactivated: "Campaign assignment removed",
+    auditActionDataExportCreated: "Data export created",
+    auditActionUserCreated: "User created",
+    auditActionUserUpdated: "User updated",
+    auditActionUserActivated: "User activated",
+    auditActionUserDeactivated: "User deactivated",
+    auditActivityMetadataPackageReassigned: "Package reassigned",
+    auditActivityMetadataPackageAssigned: "Package assigned",
+    auditActivityMetadataPackageChanged: "Package changed",
+    auditActivityMetadataPricingRuleCreated: "for {metric}",
+    auditActivityMetadataPricingRuleCreatedGeneric: "New pricing rule",
+    auditActivityMetadataKpiConfigChanged: "Metrics: {kpis}",
+    auditActivityMetadataKpiConfigChangedGeneric: "Visible metrics changed",
+    auditActivityMetadataClientCreated: "“{name}”",
+    auditActivityMetadataClientCreatedGeneric: "New client",
+    auditActivityMetadataClientRenamed: "from “{previousName}” to “{name}”",
+    auditActivityMetadataClientStatusChanged: "Status: {status}",
+    auditActivityMetadataClientUpdated: "Client details edited",
+    auditActivityMetadataClientDeactivated: "“{name}”",
+    auditActivityMetadataClientDeactivatedGeneric: "Client deactivated",
+    auditActivityMetadataDataExportCreated: "{range}-day range — {rows} rows",
   },
 };
 

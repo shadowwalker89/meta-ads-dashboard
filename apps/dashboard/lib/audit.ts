@@ -51,6 +51,9 @@ export const AUDIT_ACTIONS = {
   CAMPAIGN_ASSIGNMENT_DEACTIVATED: "campaign.assignment_deactivated",
   DATA_EXPORT_CREATED: "data_export.created",
   USER_CREATED: "user.created",
+  USER_UPDATED: "user.updated",
+  USER_ACTIVATED: "user.activated",
+  USER_DEACTIVATED: "user.deactivated",
 } as const;
 
 export const AUDIT_TARGET_TYPES = {
@@ -347,6 +350,42 @@ export class AuditService {
       {
         role: user.role,
         clientId: user.clientId,
+      }
+    );
+  }
+
+  async recordUserUpdated(
+    actor: AuditActor,
+    user: Pick<User, "id" | "role" | "clientId">,
+    changes: Record<string, unknown>
+  ): Promise<void> {
+    await this.append(
+      actor,
+      AUDIT_ACTIONS.USER_UPDATED,
+      AUDIT_TARGET_TYPES.USER,
+      user.id,
+      {
+        role: user.role,
+        clientId: user.clientId,
+        changes,
+      }
+    );
+  }
+
+  async recordUserStatusChanged(
+    actor: AuditActor,
+    user: Pick<User, "id" | "role" | "clientId">,
+    isActive: boolean
+  ): Promise<void> {
+    await this.append(
+      actor,
+      isActive ? AUDIT_ACTIONS.USER_ACTIVATED : AUDIT_ACTIONS.USER_DEACTIVATED,
+      AUDIT_TARGET_TYPES.USER,
+      user.id,
+      {
+        role: user.role,
+        clientId: user.clientId,
+        isActive,
       }
     );
   }

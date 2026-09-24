@@ -31,6 +31,7 @@ const ALL_FILES = [
   "008_add_snapshot_reporting_window.sql",
   "009_add_campaign_assignments.sql",
   "010_add_auth_id_to_users.sql",
+  "011_add_user_active.sql",
 ];
 
 function createTestDb() {
@@ -84,11 +85,51 @@ test("fresh database applies every migration in order and records them", () => {
   assert.equal(reportingTo.notnull, 0, "reporting_to must stay nullable");
 
   const userColumns = (
-    db.prepare("PRAGMA table_info(users)").all() as { name: string }[]
-  ).map((column) => column.name);
-  assert.ok(userColumns.includes("auth_id"), "users.auth_id should exist after 010");
+    db.prepare("PRAGMA table_info(users)").all() as {
+      name: string;
+      notnull: number;
+      dflt_value: string | null;
+    }[]
+  );
+  assert.ok(userColumns.some((column) => column.name === "auth_id"), "users.auth_id should exist after 010");
+  const isActive = userColumns.find((column) => column.name === "is_active");
+  assert.ok(isActive, "users.is_active should exist after 011");
+  assert.equal(isActive.notnull, 1, "users.is_active should be required");
+  assert.equal(isActive.dflt_value, "1", "users.is_active should default to active");
 
   db.close();
+});
+
+test("011 introduces users.is_active after the original schema migrations", () => {
+  const dir = mkdtempSync(join(tmpdir(), "migrate-user-active-"));
+  const db = createTestDb();
+  try {
+    for (const file of ALL_FILES.slice(0, -1)) {
+      copyFileSync(join(MIGRATIONS_DIR, file), join(dir, file));
+    }
+
+    runMigrations(db, dir);
+    const before = (
+      db.prepare("PRAGMA table_info(users)").all() as { name: string }[]
+    ).map((column) => column.name);
+    assert.ok(!before.includes("is_active"), "baseline and migrations through 010 must not define users.is_active");
+
+    const finalMigration = ALL_FILES[ALL_FILES.length - 1];
+    copyFileSync(join(MIGRATIONS_DIR, finalMigration), join(dir, finalMigration));
+    runMigrations(db, dir);
+
+    const after = (
+      db.prepare("PRAGMA table_info(users)").all() as { name: string }[]
+    ).map((column) => column.name);
+    assert.ok(after.includes("is_active"), "011 must add users.is_active");
+    const applied = (
+      db.prepare("SELECT name FROM _migrations ORDER BY name").all() as { name: string }[]
+    ).map((row) => row.name);
+    assert.deepEqual(applied, ALL_FILES);
+  } finally {
+    db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("005/006/007/008 re-run safely against a database that already contains their schema", () => {

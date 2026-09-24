@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, type PointerEvent } from "react";
 import type { UserRole } from "@repo/shared";
 import { Sidebar, SidebarToggle, useSidebarState } from "@/components/layout/sidebar";
 
@@ -13,10 +14,25 @@ export function SidebarShell({
   children: React.ReactNode;
 }) {
   const { collapsed, toggleCollapsed } = useSidebarState();
+  const [hovered, setHovered] = useState(false);
+  const expanded = !collapsed || hovered;
+
+  function handlePointerEnter(event: PointerEvent<HTMLElement>) {
+    if (event.pointerType === "mouse" && collapsed) setHovered(true);
+  }
+
+  function handlePointerLeave(event: PointerEvent<HTMLElement>) {
+    if (event.pointerType === "mouse") setHovered(false);
+  }
 
   return (
     <>
-      <Sidebar role={role} collapsed={collapsed} />
+      <Sidebar
+        role={role}
+        collapsed={!expanded}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+      />
       <SidebarToggle collapsed={collapsed} onToggle={toggleCollapsed} />
       <div className="flex min-w-0 flex-1 flex-col">
         {topbar}

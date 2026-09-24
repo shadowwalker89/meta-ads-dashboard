@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Package } from "@repo/shared";
 import type { ClientAdminEntry } from "@/lib/client-admin";
 import { ClientList } from "@/components/admin/client-list";
@@ -23,7 +23,15 @@ export function ClientManagement({
 }) {
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const formRef = useRef<HTMLElement>(null);
   const editingClient = editingId ? clients.find((c) => c.id === editingId) : null;
+  const formVisible = creating || Boolean(editingClient);
+
+  useEffect(() => {
+    if (formVisible) {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [formVisible]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -35,27 +43,31 @@ export function ClientManagement({
       />
 
       {creating && (
-        <ClientForm
-          mode="create"
-          packages={packages}
-          onCancel={() => setCreating(false)}
-          onDone={() => setCreating(false)}
-        />
+        <section ref={formRef}>
+          <ClientForm
+            mode="create"
+            packages={packages}
+            onCancel={() => setCreating(false)}
+            onDone={() => setCreating(false)}
+          />
+        </section>
       )}
 
       {editingClient && (
-        <ClientForm
-          mode="edit"
-          clientId={editingClient.id}
-          initialName={editingClient.name}
-          initialBusinessType={editingClient.businessType}
-          initialContactEmail={editingClient.contactEmail}
-          initialPackageId={editingClient.packageId}
-          initialIsActive={editingClient.isActive}
-          packages={packages}
-          onCancel={() => setEditingId(null)}
-          onDone={() => setEditingId(null)}
-        />
+        <section ref={formRef}>
+          <ClientForm
+            mode="edit"
+            clientId={editingClient.id}
+            initialName={editingClient.name}
+            initialBusinessType={editingClient.businessType}
+            initialContactEmail={editingClient.contactEmail}
+            initialPackageId={editingClient.packageId}
+            initialIsActive={editingClient.isActive}
+            packages={packages}
+            onCancel={() => setEditingId(null)}
+            onDone={() => setEditingId(null)}
+          />
+        </section>
       )}
     </div>
   );

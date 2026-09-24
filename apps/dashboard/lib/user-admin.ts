@@ -9,6 +9,7 @@ export interface UserAdminEntry {
   role: User["role"];
   clientId: string | null;
   clientName: string | null;
+  isActive: boolean;
   createdAt: Date;
 }
 
@@ -16,6 +17,7 @@ export interface UserAdminData {
   users: UserAdminEntry[];
   clients: Array<{ id: string; name: string }>;
   canCreateAdmin: boolean;
+  actorId: string;
 }
 
 export async function getUserAdminData(): Promise<UserAdminData> {
@@ -38,9 +40,11 @@ export async function getUserAdminData(): Promise<UserAdminData> {
       role: user.role,
       clientId: user.clientId,
       clientName: user.clientId ? clientNames.get(user.clientId) ?? null : null,
+      isActive: user.isActive ?? true,
       createdAt: user.createdAt,
     })),
     clients: clientRows.map((client) => ({ id: client.id, name: client.name })),
     canCreateAdmin: actor.role === "super_admin",
+    actorId: actor.id,
   };
 }

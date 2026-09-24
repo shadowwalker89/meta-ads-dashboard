@@ -6,17 +6,21 @@ import {
   canManageClients,
   getAdAccountAdminData,
 } from "@/lib/client-admin";
+import { getClientAuditActivity } from "@/lib/audit-activity";
 import { getDashboardLanguage } from "@/lib/i18n/language";
 import { DASHBOARD_STRINGS, tpl } from "@/lib/i18n/strings";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdAccountManagement } from "@/components/admin/ad-account-management";
+import { AuditActivityList } from "@/components/admin/audit-activity-list";
 
 interface AdminClientDetailPageProps {
   params: Promise<{ clientId: string }>;
+  searchParams: Promise<{ cursor?: string }>;
 }
 
 export default async function AdminClientDetailPage({
   params,
+  searchParams,
 }: AdminClientDetailPageProps) {
   const user = await getCurrentUser();
   const { clientId } = await params;
@@ -38,6 +42,25 @@ export default async function AdminClientDetailPage({
   const lang = await getDashboardLanguage();
   const t = DASHBOARD_STRINGS[lang];
 
+  const resolvedSearchParams = await searchParams;
+  const cursor =
+    typeof resolvedSearchParams.cursor === "string" &&
+    resolvedSearchParams.cursor.length > 0
+      ? resolvedSearchParams.cursor
+      : undefined;
+
+  let auditPage;
+  try {
+    auditPage = await getClientAuditActivity(
+      user,
+      clientId,
+      lang,
+      cursor ? { limit: 10, cursor } : { limit: 10 }
+    );
+  } catch {
+    redirect("/admin/clients");
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <Link
@@ -52,6 +75,13 @@ export default async function AdminClientDetailPage({
         subtitle={tpl(t.adminClientDetailSubtitle, { name: data.client.name })}
       />
       <AdAccountManagement data={data} />
+      <AuditActivityList
+        page={auditPage}
+        lang={lang}
+        strings={t}
+        clientId={clientId}
+        cursor={cursor ?? null}
+      />
     </div>
   );
 }

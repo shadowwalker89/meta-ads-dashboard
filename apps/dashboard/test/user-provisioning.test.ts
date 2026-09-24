@@ -32,21 +32,25 @@ function authFake(options: { createError?: { message: string; code?: string }; f
   const created = { id: `auth-created-${authSequence}`, email: "new@example.com" };
   let createCalls = 0;
   let deleteCalls = 0;
+  let lastCreateInput: { email?: string; password?: string; email_confirm?: boolean } | null = null;
   const auth: SupabaseAdminClient = {
     auth: {
       admin: {
-        async createUser() {
+        async createUser(input) {
           createCalls += 1;
+          lastCreateInput = input;
           return { data: { user: options.createError ? null : created }, error: options.createError ?? null };
         },
         async deleteUser() {
           deleteCalls += 1;
           return { error: options.failDelete ? { message: "cleanup failed" } : null };
         },
+        async getUserById() { return { data: { user: null }, error: null }; },
+        async updateUserById() { return { data: { user: null }, error: null }; },
       },
     },
   };
-  return { auth, createdId: created.id, counts: () => ({ createCalls, deleteCalls }) };
+  return { auth, createdId: created.id, counts: () => ({ createCalls, deleteCalls }), lastCreateInput: () => lastCreateInput };
 }
 
 function auditFake(fail = false) {
@@ -189,5 +193,20 @@ test("provisioning: application persistence failure compensates only the created
     email: "failed@example.com", fullName: "Failed", role: "admin", password: "not-used",
   }, { db, deps: { users: failingUsers, auth: fake.auth, audit: audit.audit, accessibleClientIds: allowedClient } }), /cleaned up/i);
   assert.deepEqual(fake.counts(), { createCalls: 1, deleteCalls: 1 });
+  db.close();
+});
+
+test("provisioning: Supabase Auth user is created with email already confirmed", async () => {
+  const db = createDb();
+  const client = await createClient(db);
+  const fake = authFake();
+  const audit = auditFake();
+  await provisionApplicationUser(actor("admin"), {
+    email: "confirmed@example.com", fullName: "Confirmed User", role: "client", clientId: client.id, password: "not-used",
+  }, { db, deps: { auth: fake.auth, audit: audit.audit, accessibleClientIds: async () => [client.id] } });
+  const lastInput = fake.lastCreateInput();
+  assert.ok(lastInput, "createUser must have been called");
+  assert.equal(lastInput.email_confirm, true, "admin-provisioned users must be email-confirmed so they can log in without confirmation flow");
+  assert.equal(lastInput.email, "confirmed@example.com");
   db.close();
 });

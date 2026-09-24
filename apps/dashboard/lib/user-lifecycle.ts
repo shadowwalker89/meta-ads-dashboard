@@ -2,6 +2,11 @@ import type { User, UserRepository, ClientRepository } from "@repo/shared";
 import { accessibleClientIds, requireRole, requireUser } from "@/lib/access";
 import { getAuditService } from "@/lib/audit";
 import { getDatabase, getRepositories } from "@/lib/db";
+import {
+  createSupabaseAdminClient,
+  SupabaseAdminConfigurationError,
+  type SupabaseAdminClient,
+} from "@/lib/auth/supabase-admin";
 
 type Db = ReturnType<typeof getDatabase>;
 
@@ -15,9 +20,16 @@ export class UserLifecycleError extends Error {
     | "self_deactivation"
     | "last_admin"
     | "client_scope"
-    | "application_error";
-  constructor(code: UserLifecycleError["code"], message: string) {
-    super(message);
+    | "application_error"
+    | "configuration_error"
+    | "auth_error"
+    | "no_auth_identity";
+  constructor(
+    code: UserLifecycleError["code"],
+    message: string,
+    options?: ErrorOptions
+  ) {
+    super(message, options);
     this.name = "UserLifecycleError";
     this.code = code;
   }
@@ -134,7 +146,7 @@ export async function updateApplicationUser(
   const accessible = await deps.accessibleClientIds(actor, options.db);
   assertEditable(actor, target, input.role, accessible);
 
-  let nextClientId: string | null = input.role === "client" ? input.clientId : null;
+  const nextClientId: string | null = input.role === "client" ? input.clientId : null;
   if (nextClientId) {
     const client = await deps.clients.findById(nextClientId);
     if (!client) throw new UserLifecycleError("invalid_input", "The selected client does not exist.");
@@ -237,6 +249,128 @@ export async function setApplicationUserStatus(
 export interface UserLifecycleActorContext {
   actor: User;
   db?: Db;
+}
+
+type PasswordDeps = Pick<LifecycleDeps, "users" | "accessibleClientIds"> & {
+  auth?: SupabaseAdminClient;
+  audit?: Pick<ReturnType<typeof getAuditService>, "recordUserUpdated">;
+};
+
+function isValidPassword(password: string): boolean {
+  return password.length >= 1 && password.length <= 256;
+}
+
+function assertPasswordTarget(
+  actor: User,
+  target: User,
+  clientScope: string[]
+): void {
+  if (target.role === "super_admin") {
+    throw new UserLifecycleError(
+      "protected_super_admin",
+      "This super_admin cannot be modified."
+    );
+  }
+  if (actor.role !== "super_admin" && actor.role !== "admin") {
+    throw new UserLifecycleError(
+      "forbidden",
+      "Only administrators can set user passwords."
+    );
+  }
+  if (actor.role === "admin") {
+    if (target.role !== "client") {
+      throw new UserLifecycleError(
+        "forbidden",
+        "Admins can only set passwords for client users."
+      );
+    }
+    if (target.clientId !== null && !clientScope.includes(target.clientId)) {
+      throw new UserLifecycleError(
+        "client_scope",
+        "Target is outside your authorized client scope."
+      );
+    }
+  }
+}
+
+export interface SetApplicationUserPasswordInput {
+  userId: string;
+  password: string;
+}
+
+export interface SetApplicationUserPasswordResult {
+  user: User;
+  auditRecorded: boolean;
+}
+
+export async function setApplicationUserPassword(
+  actor: User,
+  input: SetApplicationUserPasswordInput,
+  options: { db?: Db; deps?: Partial<PasswordDeps> } = {}
+): Promise<SetApplicationUserPasswordResult> {
+  const repositories = getRepositories(options.db);
+  const users = options.deps?.users ?? repositories.userRepository;
+  const resolveAccessibleClientIds =
+    options.deps?.accessibleClientIds ?? accessibleClientIds;
+  const auth = options.deps?.auth;
+
+  if (!isValidPassword(input.password)) {
+    throw new UserLifecycleError("invalid_input", "A valid password is required.");
+  }
+
+  const target = await users.findById(input.userId);
+  if (!target) {
+    throw new UserLifecycleError("not_found", "User not found.");
+  }
+
+  const scope = await resolveAccessibleClientIds(actor, options.db);
+  assertPasswordTarget(actor, target, scope);
+
+  if (!target.authId) {
+    throw new UserLifecycleError(
+      "no_auth_identity",
+      "This user does not have an authentication identity to update."
+    );
+  }
+
+  let adminClient: SupabaseAdminClient;
+  try {
+    adminClient = auth ?? createSupabaseAdminClient();
+  } catch (error) {
+    if (error instanceof SupabaseAdminConfigurationError) {
+      throw new UserLifecycleError("configuration_error", error.message, { cause: error });
+    }
+    throw error;
+  }
+
+  const updateResult = await adminClient.auth.admin.updateUserById(target.authId, {
+    password: input.password,
+    email_confirm: true,
+  });
+  if (updateResult.error || !updateResult.data.user) {
+    throw new UserLifecycleError(
+      "auth_error",
+      updateResult.error?.message ?? "The authentication password could not be updated."
+    );
+  }
+
+  const audit = options.deps?.audit ?? getAuditService(options.db);
+  let auditRecorded = true;
+  try {
+    await audit.recordUserUpdated(actor, target, { passwordReset: true });
+  } catch {
+    auditRecorded = false;
+  }
+
+  return { user: target, auditRecorded };
+}
+
+export async function setCurrentApplicationUserPassword(
+  input: SetApplicationUserPasswordInput,
+  options: { db?: Db; deps?: Partial<PasswordDeps> } = {}
+): Promise<SetApplicationUserPasswordResult> {
+  const actor = await requireUser();
+  return setApplicationUserPassword(actor, input, options);
 }
 
 export async function updateCurrentApplicationUser(
